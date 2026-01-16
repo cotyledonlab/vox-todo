@@ -28,6 +28,7 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | **Quantities** | Parse "2 gallons of milk" and show amounts inline |
 | **Smart Suggestions** | Fuzzy match + history autocomplete while typing |
 | **Quick Add** | Recent/frequent items and staples for one-tap re-add |
+| **Sharing & Export** | Copy/share list in plain text, Markdown, or JSON |
 | **Real-time Feedback** | See what was heard, get confirmation |
 | **Dark/Light Mode** | Easy on the eyes in any lighting |
 | **Offline Storage** | Your list persists locally |
@@ -70,9 +71,9 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 - [x] "Staples" list you can bulk-add
 
 ### Phase 4: Sharing
-- [ ] Copy list to clipboard (plain text)
-- [ ] Share via native share sheet
-- [ ] Export as formatted text/markdown
+- [x] Copy list to clipboard (plain text)
+- [x] Share via native share sheet
+- [x] Export as formatted text/markdown
 - [ ] QR code for quick transfer between devices
 
 ### Phase 5: Multi-List Support

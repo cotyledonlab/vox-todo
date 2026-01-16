@@ -53,7 +53,12 @@ const QuickAddChips: React.FC<QuickAddChipsProps> = ({ sections, onSelect }) => 
                 onClick={() => onSelect(item)}
                 color="primary"
                 variant="outlined"
-                sx={{ flexShrink: 0, fontWeight: 600 }}
+                sx={{
+                  flexShrink: 0,
+                  fontWeight: 600,
+                  height: 40,
+                  fontSize: '0.9rem',
+                }}
               />
             ))}
           </Stack>

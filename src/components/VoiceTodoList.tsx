@@ -23,6 +23,7 @@ import {
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ShareIcon from '@mui/icons-material/Share';
 import type { AlertColor } from '@mui/material';
 import { styles } from './VoiceTodoListStyles';
 import type { Category, Todo, TodoFilter } from '../types/Todo';
@@ -57,6 +58,7 @@ import EditTodoDialog from './EditTodoDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import ThemeToggle from './ThemeToggle';
 import VoiceSettings from './VoiceSettings';
+import ShareDialog from './ShareDialog';
 import {
   getBestSuggestion,
   getSuggestionMatches,
@@ -209,6 +211,7 @@ const VoiceTodoList: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const voices = useSpeechVoices();
   const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const shareSupported = typeof navigator !== 'undefined' && 'share' in navigator;
 
   const {
     notification,
@@ -272,6 +275,7 @@ const VoiceTodoList: React.FC = () => {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [deletingTodo, setDeletingTodo] = useState<Todo | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<Category, boolean>>(() =>
     CATEGORY_ORDER.reduce((acc, category) => {
       acc[category] = false;
@@ -888,6 +892,76 @@ const VoiceTodoList: React.FC = () => {
     });
   }, [pushFeedback, staples, updateTodos]);
 
+  const handleCopyList = useCallback(
+    async (text: string) => {
+      if (!text.trim()) {
+        pushFeedback({
+          message: 'Nothing to copy yet.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        pushFeedback({
+          message: 'Clipboard access is not available in this browser.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        pushFeedback({
+          message: 'List copied to clipboard.',
+          severity: 'success',
+        });
+      } catch (error) {
+        pushFeedback({
+          message: 'Unable to copy list. Try again.',
+          severity: 'error',
+        });
+      }
+    },
+    [pushFeedback]
+  );
+
+  const handleShareList = useCallback(
+    async (text: string) => {
+      if (!text.trim()) {
+        pushFeedback({
+          message: 'Nothing to share yet.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      if (!shareSupported) {
+        pushFeedback({
+          message: 'Sharing is not supported on this device.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      try {
+        await navigator.share({
+          title: 'Vox Grocery list',
+          text,
+        });
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') {
+          return;
+        }
+        pushFeedback({
+          message: 'Unable to share list.',
+          severity: 'error',
+        });
+      }
+    },
+    [pushFeedback, shareSupported]
+  );
+
   const handleClearCompleted = useCallback(() => {
     updateTodos(prev => {
       const nextTodos = prev.filter(todo => !todo.completed);
@@ -1447,14 +1521,24 @@ const VoiceTodoList: React.FC = () => {
                   justifyContent="space-between"
                 >
                   <Typography variant="h6">Shopping List</Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleClearCompleted}
-                    disabled={counts.completed === 0}
-                    sx={{ minHeight: 44 }}
-                  >
-                    Clear checked
-                  </Button>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ShareIcon />}
+                      onClick={() => setIsShareOpen(true)}
+                      sx={{ minHeight: 44 }}
+                    >
+                      Share list
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={handleClearCompleted}
+                      disabled={counts.completed === 0}
+                      sx={{ minHeight: 44 }}
+                    >
+                      Clear checked
+                    </Button>
+                  </Stack>
                 </Stack>
                 <TaskFilters
                   value={filter}
@@ -1622,6 +1706,15 @@ const VoiceTodoList: React.FC = () => {
           <Button onClick={() => setIsHelpOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <ShareDialog
+        open={isShareOpen}
+        items={todos}
+        canShare={shareSupported}
+        onClose={() => setIsShareOpen(false)}
+        onCopy={handleCopyList}
+        onShare={handleShareList}
+      />
 
       <EditTodoDialog
         todo={editingTodo}

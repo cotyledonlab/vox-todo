@@ -215,19 +215,19 @@ type Category =
 **Goal**: Easy list sharing
 
 #### 4.1 Copy to Clipboard
-- [ ] "Copy list" button
-- [ ] Format: plain text, one item per line
-- [ ] Include quantities: "2 gallons milk"
-- [ ] Option: include/exclude checked items
+- [x] "Copy list" button
+- [x] Format: plain text, one item per line
+- [x] Include quantities: "2 gallons milk"
+- [x] Option: include/exclude checked items
 
 #### 4.2 Native Share
-- [ ] Use Web Share API where available
-- [ ] Fallback to copy
+- [x] Use Web Share API where available
+- [x] Fallback to copy
 
 #### 4.3 Export Options
-- [ ] Plain text
-- [ ] Markdown checklist
-- [ ] JSON (for backup/restore)
+- [x] Plain text
+- [x] Markdown checklist
+- [x] JSON (for backup/restore)
 
 **New files**:
 - `utils/listExporter.ts` - Format list for export
