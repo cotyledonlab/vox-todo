@@ -1,58 +1,64 @@
+import type { Theme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
+
 export const styles = {
-  container: {
-    maxWidth: 600,
+  page: (theme: Theme) => ({
+    minHeight: '100vh',
+    padding: { xs: '1.5rem 1.1rem 3rem', md: '3rem 2.5rem 4rem' },
+  }),
+  shell: {
+    maxWidth: 1100,
     margin: '0 auto',
-    padding: '2rem',
   },
-  todoList: {
-    width: '100%',
-    bgcolor: 'background.paper',
-    borderRadius: 1,
-  },
-  todoItem: {
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-      transform: 'translateX(6px)',
-    },
-  },
-  voiceButton: {
-    marginBottom: 2,
+  headerCard: (theme: Theme) => ({
+    padding: '2.5rem',
+    borderRadius: 4,
+    background: theme.palette.mode === 'light'
+      ? 'linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(249, 115, 22, 0.1))'
+      : 'linear-gradient(135deg, rgba(45, 212, 191, 0.15), rgba(251, 146, 60, 0.15))',
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+  }),
+  voiceButton: (theme: Theme) => ({
     position: 'relative',
     overflow: 'hidden',
     '&::after': {
       content: '""',
       position: 'absolute',
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(255, 0, 0, 0.2)',
-      borderRadius: '50%',
+      inset: 0,
+      background: alpha(theme.palette.secondary.main, 0.2),
       transform: 'scale(0)',
+      borderRadius: '50%',
       transition: 'transform 0.3s ease',
     },
     '&.listening::after': {
-      transform: 'scale(1)',
-      animation: 'pulse 1.5s infinite',
+      transform: 'scale(1.4)',
+      animation: 'pulse 1.6s ease-in-out infinite',
     },
-  },
-  commandList: {
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
-    borderRadius: 1,
+  }),
+  commandList: (theme: Theme) => ({
+    borderRadius: 3,
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+    backgroundColor: alpha(theme.palette.primary.main, 0.05),
     padding: 2,
-    marginBottom: 2,
+  }),
+  floatingBadge: (theme: Theme) => ({
+    backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+    color: theme.palette.secondary.main,
+    fontWeight: 700,
+    borderRadius: 999,
+    padding: '0.3rem 0.75rem',
+    fontSize: '0.75rem',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+  }),
+  todoList: {
+    width: '100%',
+    mt: 2,
   },
   '@keyframes pulse': {
-    '0%': {
-      transform: 'scale(1)',
-      opacity: 1,
-    },
-    '50%': {
-      transform: 'scale(1.1)',
-      opacity: 0.8,
-    },
-    '100%': {
-      transform: 'scale(1)',
-      opacity: 1,
-    },
+    '0%': { transform: 'scale(1)', opacity: 0.9 },
+    '50%': { transform: 'scale(1.08)', opacity: 0.6 },
+    '100%': { transform: 'scale(1)', opacity: 0.9 },
   },
 };

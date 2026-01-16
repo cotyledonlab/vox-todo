@@ -1,12 +1,14 @@
 import React from 'react';
+import { Box } from '@mui/material';
 import VoiceTodoList from './components/VoiceTodoList';
-import './styles/VoiceTodoList.css';
+import { getAnnouncerId } from './utils/announceToScreenReader';
 
 function App() {
   return (
-    <div className="App">
+    <Box component="main">
+      <div id={getAnnouncerId()} role="status" aria-live="polite" />
       <VoiceTodoList />
-    </div>
+    </Box>
   );
 }
 
