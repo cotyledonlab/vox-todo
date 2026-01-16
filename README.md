@@ -1,108 +1,146 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50">
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:e5e7eb,100:cbd5e1&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=1e293b&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50">
-  <img alt="Vox Todo Header" src="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50" width="100%">
-</picture>
+# Vox Grocery
 
-<div align="center">
+**Voice-powered grocery list for hands-free shopping.**
 
-[![MIT License](https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square)](LICENSE)
-![TypeScript](https://img.shields.io/badge/TypeScript-0f172a?style=flat-square&logo=typescript&logoColor=3178c6)
-![React](https://img.shields.io/badge/React-0f172a?style=flat-square&logo=react&logoColor=61dafb)
-![Material UI](https://img.shields.io/badge/Material_UI-0f172a?style=flat-square&logo=mui&logoColor=007fff)
-![Web Speech API](https://img.shields.io/badge/Web_Speech_API-0f172a?style=flat-square&logo=googlechrome&logoColor=4285f4)
-
-**A modern, voice-controlled todo list app. Speak your tasks into existence.**
-
-</div>
+A focused, voice-first grocery list app. Speak your items, check them off while shopping, and never forget the milk again.
 
 ---
 
-## ✨ Features
+## Why Voice for Groceries?
 
-| | Feature | Description |
-|---|---------|-------------|
-| 🎤 | **Voice Commands** | Add, complete, and delete tasks using natural speech |
-| 🎨 | **Material Design** | Clean, modern UI powered by Material-UI components |
-| ⚡ | **Real-time Recognition** | Instant voice-to-text with visual feedback |
-| 📱 | **Responsive Layout** | Works beautifully on desktop, tablet, and mobile |
-| ⌨️ | **Hybrid Input** | Seamless fallback to traditional text entry |
+- **Hands-free in the kitchen** - Add items while cooking without touching your phone
+- **Eyes on the road** - Safely add items while driving home
+- **Quick capture** - Faster than typing, especially for multiple items
+- **Natural interaction** - "Add milk" is how you'd tell someone anyway
 
 ---
 
-## 🗣️ Voice Commands
+## Features
+
+### Core (Implemented)
+
+| Feature | Description |
+|---------|-------------|
+| **Voice Input** | Say "Add [item]" to add items to your list |
+| **Manual Input** | Type items when voice isn't convenient |
+| **Check Off Items** | Tap to mark items as picked up |
+| **Real-time Feedback** | See what was heard, get confirmation |
+| **Dark/Light Mode** | Easy on the eyes in any lighting |
+| **Offline Storage** | Your list persists locally |
+
+### Voice Commands
 
 | Command | Example | Action |
 |---------|---------|--------|
-| **Add** | *"Add buy groceries"* | Creates a new task |
-| **Complete** | *"Complete buy groceries"* | Marks task as done |
-| **Delete** | *"Delete buy groceries"* | Removes the task |
-
-> 💡 **Tip:** Speak clearly! The app uses case-insensitive exact matching on task names.
+| **Add** | "Add milk" | Adds item to list |
+| **Complete/Done** | "Complete milk" | Marks as picked up |
+| **Delete/Remove** | "Delete milk" | Removes from list |
+| **Clear completed** | "Clear completed" | Removes checked items |
+| **Show all/active/completed** | "Show active" | Filters the list |
 
 ---
 
-## 🚀 Getting Started
+## Roadmap
+
+### Phase 1: Grocery Focus (Current)
+- [x] Voice-first item entry
+- [x] Check off items while shopping
+- [x] Persistent local storage
+- [x] Clean, modern UI
+- [ ] Rename/rebrand to Vox Grocery
+- [ ] Simplify UI for grocery-specific workflow
+- [ ] Large touch targets for in-store use
+
+### Phase 2: Smart Organization
+- [ ] Auto-categorize items (Produce, Dairy, Meat, Frozen, Pantry, etc.)
+- [ ] Group items by store aisle/category
+- [ ] Quantity support ("Add 2 gallons of milk")
+- [ ] Unit detection (lbs, oz, count, etc.)
+
+### Phase 3: Quick Add
+- [ ] Recent items list for one-tap re-add
+- [ ] Frequently bought items
+- [ ] Suggested items based on history
+- [ ] "Staples" list you can bulk-add
+
+### Phase 4: Sharing
+- [ ] Copy list to clipboard (plain text)
+- [ ] Share via native share sheet
+- [ ] Export as formatted text/markdown
+- [ ] QR code for quick transfer between devices
+
+### Phase 5: Multi-List Support
+- [ ] Multiple named lists (Weekly, Party, Costco Run)
+- [ ] List templates
+- [ ] Archive completed lists
+- [ ] List history
+
+### Future Considerations
+- Cloud sync across devices
+- Collaborative lists (family shopping)
+- Store-specific lists with aisle mapping
+- Price tracking and budget features
+- Meal planning integration
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js** v14 or higher
-- **npm** or **yarn**
+- Node.js v14+
 - A browser with Web Speech API support (Chrome/Edge recommended)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/cotyledonlab/vox-todo.git
 cd vox-todo
-
-# Install dependencies
 npm install
-
-# Start development server
 npm start
 ```
 
-The app will open at `http://localhost:3000`.
+Opens at `http://localhost:3000`
+
+### Browser Support
+
+| Browser | Voice | Notes |
+|---------|-------|-------|
+| Chrome | Full | Recommended |
+| Edge | Full | Chromium-based |
+| Safari | Partial | Limited support |
+| Firefox | None | Text input only |
 
 ---
 
-## 🌐 Browser Support
+## Tech Stack
 
-| Browser | Speech Recognition | Notes |
-|---------|-------------------|-------|
-| Chrome | ✅ Full | Recommended |
-| Edge | ✅ Full | Chromium-based |
-| Safari | ⚠️ Partial | Limited support |
-| Firefox | ❌ None | Text input only |
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Material-UI v5** - Component library
+- **Web Speech API** - Voice recognition
+- **localStorage** - Offline persistence
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push (`git push origin feature/amazing`)
 5. Open a Pull Request
 
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+See [AGENTS.md](AGENTS.md) for AI agent contribution guidelines.
 
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:020617&height=80&section=footer">
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:eff6ff,100:dbeafe&height=80&section=footer">
-  <img alt="Footer" src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:020617&height=80&section=footer" width="100%">
-</picture>
+## License
+
+MIT - see [LICENSE](LICENSE)
+
+---
 
 <div align="center">
-<sub>Built with ❤️ by <a href="https://github.com/cotyledonlab">Cotyledon Lab</a></sub>
+<sub>Built by <a href="https://github.com/cotyledonlab">Cotyledon Lab</a></sub>
 </div>

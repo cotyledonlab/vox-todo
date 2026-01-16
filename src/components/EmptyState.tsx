@@ -1,6 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CelebrationIcon from '@mui/icons-material/Celebration';
 import type { TodoFilter } from '../types/Todo';
 
 interface EmptyStateProps {
@@ -8,28 +11,97 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ filter }) => {
-  const message =
-    filter === 'completed'
-      ? 'No completed tasks yet. Finish something to celebrate it here.'
-      : filter === 'active'
-        ? 'All caught up. Add a new task or use your voice.'
-        : 'Start by adding a task or speaking one out loud.';
+  const theme = useTheme();
+  const isLight = theme.palette.mode === 'light';
+
+  const config = {
+    completed: {
+      icon: CelebrationIcon,
+      title: 'No completed tasks yet',
+      message: 'Complete a task to see it celebrated here.',
+      color: theme.palette.success.main,
+      gradient: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.12)}, ${alpha(theme.palette.success.light, 0.06)})`,
+    },
+    active: {
+      icon: CheckCircleOutlineIcon,
+      title: 'All caught up!',
+      message: 'You\'ve completed everything. Add a new task when ready.',
+      color: theme.palette.primary.main,
+      gradient: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(theme.palette.info.main, 0.06)})`,
+    },
+    all: {
+      icon: PlaylistAddIcon,
+      title: 'Ready to get started',
+      message: 'Add your first task below or try a voice command.',
+      color: theme.palette.secondary.main,
+      gradient: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)}, ${alpha(theme.palette.warning.main, 0.05)})`,
+    },
+  };
+
+  const { icon: Icon, title, message, color, gradient } = config[filter];
 
   return (
     <Box
       sx={{
-        p: 4,
+        py: 5,
+        px: 4,
         textAlign: 'center',
-        borderRadius: 3,
-        border: '1px dashed',
-        borderColor: 'divider',
+        borderRadius: '20px',
+        background: gradient,
+        border: `1px dashed ${alpha(color, 0.3)}`,
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '200px',
+          height: '200px',
+          background: `radial-gradient(circle, ${alpha(color, 0.08)} 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        },
       }}
     >
-      <PlaylistAddIcon sx={{ fontSize: 40, color: 'secondary.main' }} />
-      <Typography variant="h6" sx={{ mt: 1, fontWeight: 700 }}>
-        Nothing here yet
+      <Box
+        sx={{
+          display: 'inline-flex',
+          p: 2,
+          borderRadius: '16px',
+          background: alpha(color, isLight ? 0.1 : 0.15),
+          mb: 2,
+          position: 'relative',
+        }}
+      >
+        <Icon
+          sx={{
+            fontSize: 40,
+            color: color,
+            filter: `drop-shadow(0 4px 8px ${alpha(color, 0.3)})`,
+          }}
+        />
+      </Box>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'text.primary',
+          mb: 1,
+        }}
+      >
+        {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: 'text.secondary',
+          maxWidth: 280,
+          mx: 'auto',
+          lineHeight: 1.6,
+        }}
+      >
         {message}
       </Typography>
     </Box>
