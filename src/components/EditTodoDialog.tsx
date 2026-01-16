@@ -88,7 +88,7 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
             ))}
           </Select>
           <FormHelperText>
-            Choose a category or let Vox Grocery organize items automatically.
+            Choose a category or let VoxShop organize items automatically.
           </FormHelperText>
         </FormControl>
       </DialogContent>

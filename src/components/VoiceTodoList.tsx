@@ -1157,7 +1157,7 @@ const VoiceTodoList: React.FC = () => {
 
       try {
         await navigator.share({
-          title: 'Vox Grocery list',
+          title: 'VoxShop list',
           text,
         });
       } catch (error) {
@@ -1632,7 +1632,7 @@ const VoiceTodoList: React.FC = () => {
               <Box>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant={isMobile ? 'h4' : 'h3'}>
-                    Vox Grocery
+                    VoxShop
                   </Typography>
                   <Box sx={styles.floatingBadge}>
                     {voiceSupported ? (
