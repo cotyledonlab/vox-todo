@@ -56,7 +56,7 @@ const QuickAddChips: React.FC<QuickAddChipsProps> = ({ sections, onSelect }) => 
                 sx={{
                   flexShrink: 0,
                   fontWeight: 600,
-                  height: 40,
+                  height: 44,
                   fontSize: '0.9rem',
                 }}
               />
