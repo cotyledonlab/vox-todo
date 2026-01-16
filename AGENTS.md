@@ -10,7 +10,7 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 
 **Tech stack:** React 19, Vite 7, TypeScript 5.9, Material-UI v7, Web Speech API, localStorage
 
-**Current state:** Grocery-first voice list with shopping-mode UX
+**Current state:** Grocery-first voice list with shopping-mode UX and smart organization (categories + quantities)
 
 ---
 
@@ -21,7 +21,10 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 | `src/components/VoiceTodoList.tsx` | Main component, ~990 lines, handles all state and logic |
 | `src/components/VoiceTodoListStyles.ts` | Centralized MUI styles |
 | `src/components/GroceryItem.tsx` | Individual list item component |
+| `src/components/CategorySection.tsx` | Collapsible category group |
 | `src/utils/voiceCommandParser.ts` | Parses voice input into commands |
+| `src/utils/categoryMapper.ts` | Item → Category mapping |
+| `src/utils/quantityParser.ts` | Parse quantities from natural language |
 | `src/theme/theme.ts` | MUI theme (colors, typography, component overrides) |
 | `src/hooks/useLocalStorage.ts` | Persistent state hook with migration support |
 | `src/main.tsx` | App entry point (Vite) |
@@ -55,10 +58,25 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 interface Todo {
   id: string;           // crypto.randomUUID()
   text: string;
+  quantity?: number;
+  unit?: string;
+  category?: Category;
+  categorySource?: 'auto' | 'manual';
   completed: boolean;
   createdAt: number;    // timestamp
   updatedAt: number;    // timestamp
 }
+
+type Category =
+  | 'produce'
+  | 'dairy'
+  | 'meat'
+  | 'frozen'
+  | 'pantry'
+  | 'bakery'
+  | 'beverages'
+  | 'household'
+  | 'other';
 ```
 
 localStorage key: `vox-todo:todos` (versioned)
@@ -115,10 +133,10 @@ Run: `npm run build`
 
 See `SPEC.md` for full roadmap. Immediate focus:
 
-1. **Grocery rebrand** - Update copy, simplify UI
-2. **Larger touch targets** - For in-store use
-3. **Quick add** - Recent items, one-tap re-add
-4. **Categories** - Auto-group items by type
+1. **Quick add** - Recent items, one-tap re-add
+2. **Smart suggestions** - Fuzzy match + history
+3. **Sharing** - Copy/share/export flows
+4. **Multi-list** - Named lists + templates
 
 ---
 

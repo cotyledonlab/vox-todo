@@ -25,9 +25,11 @@ import MicOffIcon from '@mui/icons-material/MicOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import type { AlertColor } from '@mui/material';
 import { styles } from './VoiceTodoListStyles';
-import type { Todo, TodoFilter } from '../types/Todo';
+import type { Category, Todo, TodoFilter } from '../types/Todo';
 import type { VoiceCommand } from '../types/VoiceCommand';
 import { parseVoiceCommand } from '../utils/voiceCommandParser';
+import { CATEGORY_ORDER, inferCategoryFromName } from '../utils/categoryMapper';
+import { formatQuantity, parseQuantityFromText } from '../utils/quantityParser';
 import {
   getBrowserInfo,
   getSpeechRecognitionConstructor,
@@ -44,6 +46,7 @@ import TranscriptDisplay from './TranscriptDisplay';
 import FeedbackMessage from './FeedbackMessage';
 import NotificationSystem from './NotificationSystem';
 import GroceryItem from './GroceryItem';
+import CategorySection from './CategorySection';
 import TaskFilters from './TaskFilters';
 import TaskStats from './TaskStats';
 import EmptyState from './EmptyState';
@@ -56,7 +59,7 @@ const TODOS_STORAGE_KEY = 'vox-todo:todos';
 const FILTER_STORAGE_KEY = 'vox-todo:filter';
 const TTS_STORAGE_KEY = 'vox-todo:tts';
 const VOICE_STORAGE_KEY = 'vox-todo:voice';
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 const normalizeText = (text: string) => text.trim().toLowerCase();
 
@@ -80,11 +83,23 @@ const createTodoId = () => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const buildTodo = (text: string): Todo => {
+type BuildTodoInput = {
+  text: string;
+  quantity?: number;
+  unit?: string;
+  category?: Category;
+  categorySource?: 'auto' | 'manual';
+};
+
+const buildTodo = ({ text, quantity, unit, category, categorySource }: BuildTodoInput): Todo => {
   const now = Date.now();
   return {
     id: createTodoId(),
     text,
+    quantity,
+    unit,
+    category,
+    categorySource,
     completed: false,
     createdAt: now,
     updatedAt: now,
@@ -97,6 +112,14 @@ const orderTodosByCompletion = (items: Todo[]) => {
   return [...active, ...completed];
 };
 
+const resolveCommandItemName = (text: string) => {
+  const parsed = parseQuantityFromText(text);
+  if (parsed.hasQuantity) {
+    return parsed.name || text;
+  }
+  return text;
+};
+
 const migrateTodos = (value: Todo[], _version: number): Todo[] => {
   if (!Array.isArray(value)) {
     return [];
@@ -104,17 +127,41 @@ const migrateTodos = (value: Todo[], _version: number): Todo[] => {
 
   return value
     .map(todo => {
-      const text = typeof todo.text === 'string' ? todo.text.trim() : '';
-      if (!text) {
+      const rawText = typeof todo.text === 'string' ? todo.text.trim() : '';
+      if (!rawText) {
         return null;
       }
+
+      const parsed = parseQuantityFromText(rawText);
+      const resolvedText = parsed.hasQuantity && parsed.name ? parsed.name : rawText;
+      const existingCategory = CATEGORY_ORDER.includes(todo.category as Category)
+        ? (todo.category as Category)
+        : undefined;
+      const categorySource = todo.categorySource === 'manual' && existingCategory
+        ? 'manual'
+        : 'auto';
+      const inferredCategory = inferCategoryFromName(resolvedText);
 
       return {
         id:
           typeof todo.id === 'string' && todo.id
             ? todo.id
             : createTodoId(),
-        text,
+        text: resolvedText,
+        quantity:
+          typeof todo.quantity === 'number'
+            ? todo.quantity
+            : parsed.hasQuantity
+              ? parsed.quantity
+              : undefined,
+        unit:
+          typeof todo.unit === 'string'
+            ? todo.unit
+            : parsed.hasQuantity
+              ? parsed.unit
+              : undefined,
+        category: existingCategory ?? inferredCategory,
+        categorySource,
         completed: Boolean(todo.completed),
         createdAt: typeof todo.createdAt === 'number' ? todo.createdAt : Date.now(),
         updatedAt: typeof todo.updatedAt === 'number' ? todo.updatedAt : Date.now(),
@@ -188,11 +235,24 @@ const VoiceTodoList: React.FC = () => {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [deletingTodo, setDeletingTodo] = useState<Todo | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<Category, boolean>>(() =>
+    CATEGORY_ORDER.reduce((acc, category) => {
+      acc[category] = false;
+      return acc;
+    }, {} as Record<Category, boolean>)
+  );
 
   const triggerHapticFeedback = useCallback(() => {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(12);
     }
+  }, []);
+
+  const toggleCategoryCollapse = useCallback((category: Category) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category],
+    }));
   }, []);
 
   const pushFeedback = useCallback(
@@ -249,6 +309,32 @@ const VoiceTodoList: React.FC = () => {
     return todos;
   }, [filter, todos]);
 
+  const groupedTodos = useMemo(() => {
+    const groups = CATEGORY_ORDER.reduce((acc, category) => {
+      acc[category] = [];
+      return acc;
+    }, {} as Record<Category, Todo[]>);
+
+    filteredTodos.forEach(todo => {
+      const category = todo.category ?? inferCategoryFromName(todo.text);
+      groups[category].push(todo);
+    });
+
+    return groups;
+  }, [filteredTodos]);
+
+  const moveMetaById = useMemo(() => {
+    const meta = new Map<string, { index: number; total: number }>();
+    CATEGORY_ORDER.forEach(category => {
+      const items = groupedTodos[category] ?? [];
+      const activeItems = items.filter(item => !item.completed);
+      const completedItems = items.filter(item => item.completed);
+      activeItems.forEach((item, index) => meta.set(item.id, { index, total: activeItems.length }));
+      completedItems.forEach((item, index) => meta.set(item.id, { index, total: completedItems.length }));
+    });
+    return meta;
+  }, [groupedTodos]);
+
   const counts = useMemo(() => {
     const completed = todos.filter(todo => todo.completed).length;
     const total = todos.length;
@@ -267,9 +353,20 @@ const VoiceTodoList: React.FC = () => {
         return;
       }
 
+      const parsed = parseQuantityFromText(trimmed);
+      const name = parsed.hasQuantity ? parsed.name : trimmed;
+      const cleanedName = name.trim();
+      if (!cleanedName) {
+        pushFeedback({
+          message: 'Add an item name with your quantity.',
+          severity: 'warning',
+        });
+        return;
+      }
+
       updateTodos(prev => {
         const alreadyExists = prev.some(
-          todo => normalizeText(todo.text) === normalizeText(trimmed)
+          todo => normalizeText(todo.text) === normalizeText(cleanedName)
         );
         if (alreadyExists) {
           return {
@@ -281,13 +378,24 @@ const VoiceTodoList: React.FC = () => {
           };
         }
 
-        const nextTodo = buildTodo(trimmed);
+        const inferredCategory = inferCategoryFromName(cleanedName);
+        const nextTodo = buildTodo({
+          text: cleanedName,
+          quantity: parsed.hasQuantity ? parsed.quantity : undefined,
+          unit: parsed.hasQuantity ? parsed.unit : undefined,
+          category: inferredCategory,
+          categorySource: 'auto',
+        });
+        const quantityLabel = formatQuantity(nextTodo.quantity, nextTodo.unit);
+        const displayLabel = quantityLabel
+          ? `${quantityLabel} ${nextTodo.text}`
+          : nextTodo.text;
         const active = prev.filter(todo => !todo.completed);
         const completed = prev.filter(todo => todo.completed);
         return {
           todos: [...active, nextTodo, ...completed],
           feedback: {
-            message: `Added to list: ${nextTodo.text}`,
+            message: `Added to list: ${displayLabel}`,
             severity: 'success',
           },
         };
@@ -332,7 +440,7 @@ const VoiceTodoList: React.FC = () => {
   );
 
   const handleEditTodo = useCallback(
-    (todo: Todo, text: string) => {
+    (todo: Todo, text: string, categorySelection: Category | 'auto') => {
       updateTodos(prev => {
         const trimmed = text.trim();
         if (!trimmed) {
@@ -345,15 +453,34 @@ const VoiceTodoList: React.FC = () => {
           };
         }
 
+        const parsed = parseQuantityFromText(trimmed);
+        const resolvedName = parsed.hasQuantity
+          ? parsed.name.trim() || todo.text
+          : trimmed;
+        const nextCategory = categorySelection === 'auto'
+          ? inferCategoryFromName(resolvedName)
+          : categorySelection;
+        const nextCategorySource = categorySelection === 'auto' ? 'auto' : 'manual';
+        const nextQuantity = parsed.hasQuantity ? parsed.quantity : todo.quantity;
+        const nextUnit = parsed.hasQuantity ? parsed.unit : todo.unit;
+
         const nextTodos = prev.map(item =>
           item.id === todo.id
-            ? { ...item, text: trimmed, updatedAt: Date.now() }
+            ? {
+                ...item,
+                text: resolvedName,
+                quantity: nextQuantity,
+                unit: nextUnit,
+                category: nextCategory,
+                categorySource: nextCategorySource,
+                updatedAt: Date.now(),
+              }
             : item
         );
         return {
           todos: nextTodos,
           feedback: {
-            message: `Updated item: ${trimmed}`,
+            message: `Updated item: ${resolvedName}`,
             severity: 'success',
           },
         };
@@ -386,8 +513,18 @@ const VoiceTodoList: React.FC = () => {
           };
         }
 
-        const nextIndex = direction === 'up' ? index - 1 : index + 1;
-        if (nextIndex < 0 || nextIndex >= prev.length) {
+        const target = prev[index];
+        const targetCategory = target.category ?? inferCategoryFromName(target.text);
+        const sameGroup = prev
+          .map((todo, idx) => ({ todo, idx }))
+          .filter(
+            entry =>
+              (entry.todo.category ?? inferCategoryFromName(entry.todo.text)) ===
+                targetCategory && entry.todo.completed === target.completed
+          );
+        const localIndex = sameGroup.findIndex(entry => entry.todo.id === id);
+        const nextLocalIndex = direction === 'up' ? localIndex - 1 : localIndex + 1;
+        if (nextLocalIndex < 0 || nextLocalIndex >= sameGroup.length) {
           return {
             todos: prev,
             feedback: {
@@ -397,9 +534,11 @@ const VoiceTodoList: React.FC = () => {
           };
         }
 
+        const swapIndex = sameGroup[nextLocalIndex].idx;
         const nextTodos = [...prev];
         const [moved] = nextTodos.splice(index, 1);
-        nextTodos.splice(nextIndex, 0, moved);
+        const insertIndex = swapIndex > index ? swapIndex - 1 : swapIndex;
+        nextTodos.splice(insertIndex, 0, moved);
 
         return {
           todos: orderTodosByCompletion(nextTodos),
@@ -471,7 +610,7 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'help') {
         pushFeedback({
-          message: 'Try: add, got, delete, edit, move, clear checked, show all/active/picked up.',
+          message: 'Try: add, add 2 gallons of milk, got, delete, edit, move, clear checked, show all/active/picked up.',
           severity: 'info',
         });
         return;
@@ -511,7 +650,8 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'delete') {
         updateTodos(prev => {
-          const matchText = normalizeText(command.text);
+          const commandName = resolveCommandItemName(command.text);
+          const matchText = normalizeText(commandName);
           const matches = prev.filter(
             todo => normalizeText(todo.text) === matchText
           );
@@ -525,7 +665,7 @@ const VoiceTodoList: React.FC = () => {
           return {
             todos: prev.filter(todo => normalizeText(todo.text) !== matchText),
             feedback: {
-              message: `Removed ${matches.length} item(s) named "${command.text}".`,
+              message: `Removed ${matches.length} item(s) named "${commandName}".`,
               severity: 'info',
             },
           };
@@ -535,7 +675,8 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'complete') {
         updateTodos(prev => {
-          const matchText = normalizeText(command.text);
+          const commandName = resolveCommandItemName(command.text);
+          const matchText = normalizeText(commandName);
           const matches = prev.filter(
             todo => normalizeText(todo.text) === matchText
           );
@@ -556,7 +697,7 @@ const VoiceTodoList: React.FC = () => {
           return {
             todos: nextTodos,
             feedback: {
-              message: `Picked up ${matches.length} item(s) named "${command.text}".`,
+              message: `Picked up ${matches.length} item(s) named "${commandName}".`,
               severity: 'success',
             },
           };
@@ -566,7 +707,8 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'edit') {
         updateTodos(prev => {
-          const matchText = normalizeText(command.target);
+          const targetName = resolveCommandItemName(command.target);
+          const matchText = normalizeText(targetName);
           const match = prev.find(
             todo => normalizeText(todo.text) === matchText
           );
@@ -577,15 +719,45 @@ const VoiceTodoList: React.FC = () => {
             };
           }
 
+          const trimmed = command.text.trim();
+          if (!trimmed) {
+            return {
+              todos: prev,
+              feedback: {
+                message: 'Item name cannot be empty.',
+                severity: 'warning',
+              },
+            };
+          }
+
+          const parsed = parseQuantityFromText(trimmed);
+          const resolvedName = parsed.hasQuantity
+            ? parsed.name.trim() || match.text
+            : trimmed;
+          const nextCategory = match.categorySource === 'manual' && match.category
+            ? match.category
+            : inferCategoryFromName(resolvedName);
+          const nextCategorySource = match.categorySource === 'manual' ? 'manual' : 'auto';
+          const nextQuantity = parsed.hasQuantity ? parsed.quantity : match.quantity;
+          const nextUnit = parsed.hasQuantity ? parsed.unit : match.unit;
+
           const nextTodos = prev.map(todo =>
             todo.id === match.id
-              ? { ...todo, text: command.text, updatedAt: Date.now() }
+              ? {
+                  ...todo,
+                  text: resolvedName,
+                  quantity: nextQuantity,
+                  unit: nextUnit,
+                  category: nextCategory,
+                  categorySource: nextCategorySource,
+                  updatedAt: Date.now(),
+                }
               : todo
           );
           return {
             todos: nextTodos,
             feedback: {
-              message: `Updated "${match.text}" to "${command.text}".`,
+              message: `Updated "${match.text}" to "${resolvedName}".`,
               severity: 'success',
             },
           };
@@ -595,7 +767,8 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'move') {
         updateTodos(prev => {
-          const matchText = normalizeText(command.text);
+          const commandName = resolveCommandItemName(command.text);
+          const matchText = normalizeText(commandName);
           const index = prev.findIndex(
             todo => normalizeText(todo.text) === matchText
           );
@@ -606,8 +779,18 @@ const VoiceTodoList: React.FC = () => {
             };
           }
 
-          const nextIndex = command.direction === 'up' ? index - 1 : index + 1;
-          if (nextIndex < 0 || nextIndex >= prev.length) {
+          const target = prev[index];
+          const targetCategory = target.category ?? inferCategoryFromName(target.text);
+          const sameGroup = prev
+            .map((todo, idx) => ({ todo, idx }))
+            .filter(
+              entry =>
+                (entry.todo.category ?? inferCategoryFromName(entry.todo.text)) ===
+                  targetCategory && entry.todo.completed === target.completed
+            );
+          const localIndex = sameGroup.findIndex(entry => entry.todo.id === target.id);
+          const nextLocalIndex = command.direction === 'up' ? localIndex - 1 : localIndex + 1;
+          if (nextLocalIndex < 0 || nextLocalIndex >= sameGroup.length) {
             return {
               todos: prev,
               feedback: {
@@ -617,9 +800,11 @@ const VoiceTodoList: React.FC = () => {
             };
           }
 
+          const swapIndex = sameGroup[nextLocalIndex].idx;
           const nextTodos = [...prev];
           const [moved] = nextTodos.splice(index, 1);
-          nextTodos.splice(nextIndex, 0, moved);
+          const insertIndex = swapIndex > index ? swapIndex - 1 : swapIndex;
+          nextTodos.splice(insertIndex, 0, moved);
 
           return {
             todos: orderTodosByCompletion(nextTodos),
@@ -785,6 +970,9 @@ const VoiceTodoList: React.FC = () => {
           <ListItemText primary='Add [item]' secondary='Add oat milk' />
         </ListItem>
         <ListItem>
+          <ListItemText primary='Add [quantity] [item]' secondary='Add 2 gallons of milk' />
+        </ListItem>
+        <ListItem>
           <ListItemText primary='Got [item]' secondary='Got spinach' />
         </ListItem>
         <ListItem>
@@ -792,6 +980,9 @@ const VoiceTodoList: React.FC = () => {
         </ListItem>
         <ListItem>
           <ListItemText primary='Edit [item] to [new item]' secondary='Edit eggs to cage-free eggs' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Change [item] to [quantity]' secondary='Change milk to 3 gallons' />
         </ListItem>
         <ListItem>
           <ListItemText primary='Move [item] up/down' secondary='Move apples up' />
@@ -929,21 +1120,44 @@ const VoiceTodoList: React.FC = () => {
                 {filteredTodos.length === 0 ? (
                   <EmptyState filter={filter} />
                 ) : (
-                  <List sx={styles.todoList} aria-live="polite">
-                    {filteredTodos.map((todo, index) => (
-                      <GroceryItem
-                        key={todo.id}
-                        item={todo}
-                        index={index}
-                        total={filteredTodos.length}
-                        onToggle={handleToggleTodo}
-                        onEdit={openEditDialog}
-                        onDelete={openDeleteDialog}
-                        onSwipeDelete={handleDeleteTodo}
-                        onMove={handleMoveTodo}
-                      />
-                    ))}
-                  </List>
+                  <Stack spacing={1.5} aria-live="polite">
+                    {CATEGORY_ORDER.map(category => {
+                      const items = groupedTodos[category];
+                      if (!items || items.length === 0) {
+                        return null;
+                      }
+                      return (
+                        <CategorySection
+                          key={category}
+                          category={category}
+                          items={items}
+                          collapsed={collapsedCategories[category]}
+                          onToggle={toggleCategoryCollapse}
+                          listSx={styles.todoList}
+                        >
+                          {items.map(item => {
+                            const meta = moveMetaById.get(item.id) ?? {
+                              index: 0,
+                              total: 1,
+                            };
+                            return (
+                              <GroceryItem
+                                key={item.id}
+                                item={item}
+                                index={meta.index}
+                                total={meta.total}
+                                onToggle={handleToggleTodo}
+                                onEdit={openEditDialog}
+                                onDelete={openDeleteDialog}
+                                onSwipeDelete={handleDeleteTodo}
+                                onMove={handleMoveTodo}
+                              />
+                            );
+                          })}
+                        </CategorySection>
+                      );
+                    })}
+                  </Stack>
                 )}
               </Stack>
             </Paper>
@@ -1047,8 +1261,8 @@ const VoiceTodoList: React.FC = () => {
         todo={editingTodo}
         open={Boolean(editingTodo)}
         onCancel={closeDialogs}
-        onSave={(todo, text) => {
-          handleEditTodo(todo, text);
+        onSave={(todo, text, categorySelection) => {
+          handleEditTodo(todo, text, categorySelection);
           closeDialogs();
         }}
       />

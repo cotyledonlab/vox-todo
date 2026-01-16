@@ -18,6 +18,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import type { Todo } from '../types/Todo';
+import { formatQuantity } from '../utils/quantityParser';
 
 interface GroceryItemProps {
   item: Todo;
@@ -48,6 +49,8 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
   const skipClickRef = useRef(false);
   const maxDrag = 120;
   const swipeThreshold = 80;
+  const quantityLabel = formatQuantity(item.quantity, item.unit);
+  const displayLabel = quantityLabel ? `${quantityLabel} ${item.text}` : item.text;
 
   const handlePointerDown = (event: React.PointerEvent) => {
     startXRef.current = event.clientX;
@@ -135,7 +138,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
                 size="small"
                 onClick={() => onMove(item.id, 'up')}
                 disabled={index === 0}
-                aria-label={`Move ${item.text} up`}
+                aria-label={`Move ${displayLabel} up`}
                 sx={{
                   color: 'text.secondary',
                   '&:not(:disabled):hover': {
@@ -154,7 +157,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
                 size="small"
                 onClick={() => onMove(item.id, 'down')}
                 disabled={index === total - 1}
-                aria-label={`Move ${item.text} down`}
+                aria-label={`Move ${displayLabel} down`}
                 sx={{
                   color: 'text.secondary',
                   '&:not(:disabled):hover': {
@@ -171,7 +174,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
             <IconButton
               size="small"
               onClick={() => onEdit(item)}
-              aria-label={`Edit ${item.text}`}
+              aria-label={`Edit ${displayLabel}`}
               sx={{
                 color: 'text.secondary',
                 '&:hover': {
@@ -187,7 +190,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
             <IconButton
               size="small"
               onClick={() => onDelete(item)}
-              aria-label={`Delete ${item.text}`}
+              aria-label={`Delete ${displayLabel}`}
               sx={{
                 color: 'text.secondary',
                 '&:hover': {
@@ -226,7 +229,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
             backgroundColor: 'transparent',
           },
         }}
-        aria-label={`Toggle picked up for ${item.text}`}
+        aria-label={`Toggle picked up for ${displayLabel}`}
       >
         <ListItemIcon sx={{ minWidth: 44 }}>
           <Checkbox
@@ -250,7 +253,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
                 }}
               />
             }
-            inputProps={{ 'aria-label': `Mark ${item.text} picked up` }}
+            inputProps={{ 'aria-label': `Mark ${displayLabel} picked up` }}
             sx={{
               '&:hover': {
                 backgroundColor: 'transparent',
@@ -260,20 +263,38 @@ const GroceryItem: React.FC<GroceryItemProps> = ({
         </ListItemIcon>
         <ListItemText
           primary={
-            <Box
-              component="span"
-              sx={{
-                textDecoration: item.completed ? 'line-through' : 'none',
-                color: item.completed ? 'text.secondary' : 'text.primary',
-                fontWeight: 600,
-                fontSize: '1rem',
-                letterSpacing: '-0.01em',
-                transition: 'all 0.2s ease',
-                opacity: item.completed ? 0.7 : 1,
-              }}
-            >
-              {item.text}
-            </Box>
+            <Stack direction="row" spacing={1} alignItems="center">
+              {quantityLabel ? (
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: item.completed ? 'text.secondary' : 'primary.main',
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: 999,
+                  }}
+                >
+                  {quantityLabel}
+                </Box>
+              ) : null}
+              <Box
+                component="span"
+                sx={{
+                  textDecoration: item.completed ? 'line-through' : 'none',
+                  color: item.completed ? 'text.secondary' : 'text.primary',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  letterSpacing: '-0.01em',
+                  transition: 'all 0.2s ease',
+                  opacity: item.completed ? 0.7 : 1,
+                }}
+              >
+                {item.text}
+              </Box>
+            </Stack>
           }
         />
       </ListItemButton>

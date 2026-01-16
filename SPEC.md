@@ -160,17 +160,17 @@ type Category =
 **Goal**: Auto-categorize items and support quantities
 
 #### 2.1 Item Categorization
-- [ ] Build category keyword map (milk→dairy, apples→produce, etc.)
-- [ ] Auto-assign category on add
-- [ ] Allow manual category override
-- [ ] Group items by category in list view
-- [ ] Collapsible category sections
+- [x] Build category keyword map (milk→dairy, apples→produce, etc.)
+- [x] Auto-assign category on add
+- [x] Allow manual category override
+- [x] Group items by category in list view
+- [x] Collapsible category sections
 
 #### 2.2 Quantity Parsing
-- [ ] Parse "Add 2 gallons of milk" → { name: "milk", quantity: 2, unit: "gallons" }
-- [ ] Common units: lbs, oz, gallons, count, dozen, bunch, bag, box
-- [ ] Display quantity inline with item
-- [ ] Voice command: "Change milk to 3 gallons"
+- [x] Parse "Add 2 gallons of milk" → { name: "milk", quantity: 2, unit: "gallons" }
+- [x] Common units: lbs, oz, gallons, count, dozen, bunch, bag, box
+- [x] Display quantity inline with item
+- [x] Voice command: "Change milk to 3 gallons"
 
 #### 2.3 Smart Suggestions
 - [ ] Fuzzy match existing items ("mil" suggests "milk")

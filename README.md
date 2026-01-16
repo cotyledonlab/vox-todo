@@ -24,6 +24,8 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | **Voice Input** | Say "Add [item]" to add items to your list |
 | **Manual Input** | Type items when voice isn't convenient |
 | **Check Off Items** | Tap to mark items as picked up |
+| **Smart Categories** | Auto-group items by aisle with manual overrides |
+| **Quantities** | Parse "2 gallons of milk" and show amounts inline |
 | **Real-time Feedback** | See what was heard, get confirmation |
 | **Dark/Light Mode** | Easy on the eyes in any lighting |
 | **Offline Storage** | Your list persists locally |
@@ -33,8 +35,10 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | Command | Example | Action |
 |---------|---------|--------|
 | **Add** | "Add milk" | Adds item to list |
+| **Add with quantity** | "Add 2 gallons of milk" | Adds item with quantity |
 | **Got/Picked up** | "Got milk" | Marks as picked up |
 | **Delete/Remove** | "Delete milk" | Removes from list |
+| **Edit quantity** | "Change milk to 3 gallons" | Updates quantity |
 | **Clear checked** | "Clear checked" | Removes checked items |
 | **Show all/need/picked up** | "Show need" | Filters the list |
 
@@ -52,10 +56,10 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 - [x] Large touch targets for in-store use
 
 ### Phase 2: Smart Organization
-- [ ] Auto-categorize items (Produce, Dairy, Meat, Frozen, Pantry, etc.)
-- [ ] Group items by store aisle/category
-- [ ] Quantity support ("Add 2 gallons of milk")
-- [ ] Unit detection (lbs, oz, count, etc.)
+- [x] Auto-categorize items (Produce, Dairy, Meat, Frozen, Pantry, etc.)
+- [x] Group items by store aisle/category
+- [x] Quantity support ("Add 2 gallons of milk")
+- [x] Unit detection (lbs, oz, count, etc.)
 
 ### Phase 3: Quick Add
 - [ ] Recent items list for one-tap re-add

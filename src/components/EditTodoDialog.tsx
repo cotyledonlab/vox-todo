@@ -5,15 +5,21 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from '@mui/material';
-import type { Todo } from '../types/Todo';
+import type { Category, Todo } from '../types/Todo';
+import { CATEGORY_LABELS, CATEGORY_ORDER } from '../utils/categoryMapper';
 
 interface EditTodoDialogProps {
   todo: Todo | null;
   open: boolean;
   onCancel: () => void;
-  onSave: (todo: Todo, text: string) => void;
+  onSave: (todo: Todo, text: string, categorySelection: Category | 'auto') => void;
 }
 
 const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
@@ -23,9 +29,15 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
   onSave,
 }) => {
   const [value, setValue] = useState('');
+  const [category, setCategory] = useState<Category | 'auto'>('auto');
 
   useEffect(() => {
     setValue(todo?.text ?? '');
+    if (!todo?.category || todo.categorySource !== 'manual') {
+      setCategory('auto');
+      return;
+    }
+    setCategory(todo.category);
   }, [todo]);
 
   const handleSave = () => {
@@ -34,7 +46,7 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
     }
     const next = value.trim();
     if (next) {
-      onSave(todo, next);
+      onSave(todo, next, category);
     }
   };
 
@@ -60,6 +72,25 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
             }
           }}
         />
+        <FormControl fullWidth margin="dense">
+          <InputLabel id="edit-category-label">Category</InputLabel>
+          <Select
+            labelId="edit-category-label"
+            value={category}
+            label="Category"
+            onChange={event => setCategory(event.target.value as Category | 'auto')}
+          >
+            <MenuItem value="auto">Auto (from item name)</MenuItem>
+            {CATEGORY_ORDER.map(option => (
+              <MenuItem key={option} value={option}>
+                {CATEGORY_LABELS[option]}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText>
+            Choose a category or let Vox Grocery organize items automatically.
+          </FormHelperText>
+        </FormControl>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>Cancel</Button>
