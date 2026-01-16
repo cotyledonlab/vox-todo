@@ -29,6 +29,7 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | **Smart Suggestions** | Fuzzy match + history autocomplete while typing |
 | **Quick Add** | Recent/frequent items and staples for one-tap re-add |
 | **Sharing & Export** | Copy/share list in plain text, Markdown, or JSON |
+| **Multi-list** | Create, rename, and switch between lists |
 | **Real-time Feedback** | See what was heard, get confirmation |
 | **Dark/Light Mode** | Easy on the eyes in any lighting |
 | **Offline Storage** | Your list persists locally |
@@ -77,7 +78,7 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 - [ ] QR code for quick transfer between devices
 
 ### Phase 5: Multi-List Support
-- [ ] Multiple named lists (Weekly, Party, Costco Run)
+- [x] Multiple named lists (Weekly, Party, Costco Run)
 - [ ] List templates
 - [ ] Archive completed lists
 - [ ] List history

@@ -10,7 +10,7 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 
 **Tech stack:** React 19, Vite 7, TypeScript 5.9, Material-UI v7, Web Speech API, localStorage
 
-**Current state:** Grocery-first voice list with shopping-mode UX, smart organization, quick add, and sharing/export tools
+**Current state:** Grocery-first voice list with shopping-mode UX, smart organization, quick add, sharing/export tools, and multi-list support
 
 ---
 
@@ -31,6 +31,7 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 | `src/utils/suggestionMatcher.ts` | Fuzzy match + suggestions engine |
 | `src/utils/listExporter.ts` | List export formatting helpers |
 | `src/hooks/useItemHistory.ts` | Recent/frequent item history tracking |
+| `src/types/GroceryList.ts` | Multi-list data model |
 | `src/theme/theme.ts` | MUI theme (colors, typography, component overrides) |
 | `src/hooks/useLocalStorage.ts` | Persistent state hook with migration support |
 | `src/main.tsx` | App entry point (Vite) |
@@ -73,6 +74,15 @@ interface Todo {
   updatedAt: number;    // timestamp
 }
 
+interface GroceryList {
+  id: string;
+  name: string;
+  items: Todo[];
+  createdAt: number;
+  updatedAt: number;
+  isArchived: boolean;
+}
+
 type Category =
   | 'produce'
   | 'dairy'
@@ -85,7 +95,7 @@ type Category =
   | 'other';
 ```
 
-localStorage key: `vox-todo:todos` (versioned)
+localStorage key: `vox-todo:todos` (lists, versioned) + `vox-todo:active-list`
 
 ---
 
@@ -139,10 +149,10 @@ Run: `npm run build`
 
 See `SPEC.md` for full roadmap. Immediate focus:
 
-1. **Multi-list** - Named lists + templates
-2. **Testing** - Add coverage for suggestions + quick add
-3. **Performance** - Virtual list + debounce storage
-4. **Polish** - QR share, list templates, accessibility refinements
+1. **List templates** - Save/reuse common lists
+2. **List history** - Archive completed lists
+3. **Testing** - Add coverage for suggestions + quick add
+4. **Performance** - Virtual list + debounce storage
 
 ---
 

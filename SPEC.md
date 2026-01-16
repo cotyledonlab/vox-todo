@@ -240,10 +240,10 @@ type Category =
 **Goal**: Support multiple named lists
 
 #### 5.1 List Management
-- [ ] Create new lists
-- [ ] Rename lists
-- [ ] Delete lists
-- [ ] Switch between lists
+- [x] Create new lists
+- [x] Rename lists
+- [x] Delete lists
+- [x] Switch between lists
 
 #### 5.2 Templates
 - [ ] Save current list as template

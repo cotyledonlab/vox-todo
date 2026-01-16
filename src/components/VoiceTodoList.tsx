@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -9,17 +9,24 @@ import {
   DialogContent,
   DialogTitle,
   Fab,
+  FormControl,
   FormControlLabel,
+  InputLabel,
   List,
   ListItem,
   ListItemText,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -27,6 +34,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import type { AlertColor } from '@mui/material';
 import { styles } from './VoiceTodoListStyles';
 import type { Category, Todo, TodoFilter } from '../types/Todo';
+import type { GroceryList } from '../types/GroceryList';
 import type { VoiceCommand } from '../types/VoiceCommand';
 import { parseVoiceCommand } from '../utils/voiceCommandParser';
 import { CATEGORY_ORDER, inferCategoryFromName } from '../utils/categoryMapper';
@@ -65,12 +73,13 @@ import {
   type SuggestionCandidate,
 } from '../utils/suggestionMatcher';
 
-const TODOS_STORAGE_KEY = 'vox-todo:todos';
+const LISTS_STORAGE_KEY = 'vox-todo:todos';
 const FILTER_STORAGE_KEY = 'vox-todo:filter';
 const TTS_STORAGE_KEY = 'vox-todo:tts';
 const VOICE_STORAGE_KEY = 'vox-todo:voice';
+const ACTIVE_LIST_STORAGE_KEY = 'vox-todo:active-list';
 const STAPLES_STORAGE_KEY = 'vox-todo:staples';
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 const STAPLES_STORAGE_VERSION = 1;
 
 const normalizeText = (text: string) => text.trim().toLowerCase();
@@ -126,6 +135,18 @@ const buildTodo = ({ text, quantity, unit, category, categorySource }: BuildTodo
   };
 };
 
+const buildList = (name: string, items: Todo[] = []): GroceryList => {
+  const now = Date.now();
+  return {
+    id: createTodoId(),
+    name,
+    items,
+    createdAt: now,
+    updatedAt: now,
+    isArchived: false,
+  };
+};
+
 const orderTodosByCompletion = (items: Todo[]) => {
   const active = items.filter(todo => !todo.completed);
   const completed = items.filter(todo => todo.completed);
@@ -144,6 +165,12 @@ const buildItemLabel = (item: { name: string; quantity?: number; unit?: string }
   const quantityLabel = formatQuantity(item.quantity, item.unit);
   return quantityLabel ? `${quantityLabel} ${item.name}` : item.name;
 };
+
+const isTodoLike = (value: unknown): value is Todo =>
+  Boolean(value) && typeof value === 'object' && 'text' in (value as Todo);
+
+const isListLike = (value: unknown): value is GroceryList =>
+  Boolean(value) && typeof value === 'object' && 'items' in (value as GroceryList);
 
 const migrateTodos = (value: Todo[], _version: number): Todo[] => {
   if (!Array.isArray(value)) {
@@ -195,6 +222,42 @@ const migrateTodos = (value: Todo[], _version: number): Todo[] => {
     .filter((todo): todo is Todo => Boolean(todo));
 };
 
+const migrateLists = (value: GroceryList[] | Todo[], version: number): GroceryList[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  if (value.length === 0) {
+    return [];
+  }
+
+  const lists = value.filter(isListLike) as GroceryList[];
+  if (lists.length > 0 && lists.length === value.length) {
+    return lists.map(list => {
+      const name =
+        typeof list.name === 'string' && list.name.trim()
+          ? list.name.trim()
+          : 'My List';
+      const items = migrateTodos(Array.isArray(list.items) ? list.items : [], version);
+      return {
+        id: typeof list.id === 'string' && list.id ? list.id : createTodoId(),
+        name,
+        items,
+        createdAt: typeof list.createdAt === 'number' ? list.createdAt : Date.now(),
+        updatedAt: typeof list.updatedAt === 'number' ? list.updatedAt : Date.now(),
+        isArchived: Boolean(list.isArchived),
+      } as GroceryList;
+    });
+  }
+
+  const todos = value.filter(isTodoLike) as Todo[];
+  if (todos.length > 0) {
+    return [buildList('My List', migrateTodos(todos, version))];
+  }
+
+  return [];
+};
+
 interface FeedbackState {
   message: string;
   severity: AlertColor;
@@ -223,15 +286,15 @@ const VoiceTodoList: React.FC = () => {
   } = useNotification();
 
   const {
-    value: todos,
-    setValue: setTodos,
-    clear: clearTodos,
+    value: lists,
+    setValue: setLists,
+    clear: clearLists,
     error: storageError,
-  } = useLocalStorageState<Todo[]>({
-    key: TODOS_STORAGE_KEY,
+  } = useLocalStorageState<GroceryList[]>({
+    key: LISTS_STORAGE_KEY,
     initialValue: [],
     version: STORAGE_VERSION,
-    migrate: migrateTodos,
+    migrate: migrateLists,
     onError: (error) => notifyWarning(error.message, 'Storage'),
   });
 
@@ -250,6 +313,12 @@ const VoiceTodoList: React.FC = () => {
   const { value: voicePreference, setValue: setVoicePreference } = useLocalStorageState<string>({
     key: VOICE_STORAGE_KEY,
     initialValue: 'auto',
+    version: STORAGE_VERSION,
+  });
+
+  const { value: activeListId, setValue: setActiveListId } = useLocalStorageState<string>({
+    key: ACTIVE_LIST_STORAGE_KEY,
+    initialValue: '',
     version: STORAGE_VERSION,
   });
 
@@ -276,6 +345,10 @@ const VoiceTodoList: React.FC = () => {
   const [deletingTodo, setDeletingTodo] = useState<Todo | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isCreateListOpen, setIsCreateListOpen] = useState(false);
+  const [isRenameListOpen, setIsRenameListOpen] = useState(false);
+  const [isDeleteListOpen, setIsDeleteListOpen] = useState(false);
+  const [listNameDraft, setListNameDraft] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<Category, boolean>>(() =>
     CATEGORY_ORDER.reduce((acc, category) => {
       acc[category] = false;
@@ -295,6 +368,19 @@ const VoiceTodoList: React.FC = () => {
       [category]: !prev[category],
     }));
   }, []);
+
+  useEffect(() => {
+    if (lists.length === 0) {
+      const newList = buildList('My List');
+      setLists([newList]);
+      setActiveListId(newList.id);
+      return;
+    }
+
+    if (!activeListId || !lists.some(list => list.id === activeListId)) {
+      setActiveListId(lists[0].id);
+    }
+  }, [activeListId, lists, setActiveListId, setLists]);
 
   const pushFeedback = useCallback(
     (next: FeedbackState) => {
@@ -325,6 +411,13 @@ const VoiceTodoList: React.FC = () => {
       : 'auto';
   }, [voicePreference, voices]);
 
+  const activeList = useMemo(
+    () => lists.find(list => list.id === activeListId) ?? lists[0] ?? null,
+    [activeListId, lists]
+  );
+
+  const todos = activeList?.items ?? [];
+
   const updateTodos = useCallback(
     (
       updater: (prev: Todo[]) => {
@@ -335,11 +428,22 @@ const VoiceTodoList: React.FC = () => {
     ) => {
       let nextFeedback: FeedbackState | undefined;
       let nextHistoryEntries: ItemHistoryInput[] | undefined;
-      setTodos(prev => {
-        const result = updater(prev);
+      setLists(prev => {
+        const index = prev.findIndex(list => list.id === activeListId);
+        if (index < 0) {
+          return prev;
+        }
+        const list = prev[index];
+        const result = updater(list.items);
         nextFeedback = result.feedback;
         nextHistoryEntries = result.historyEntries;
-        return result.todos;
+        const nextLists = [...prev];
+        nextLists[index] = {
+          ...list,
+          items: result.todos,
+          updatedAt: Date.now(),
+        };
+        return nextLists;
       });
       if (nextFeedback) {
         pushFeedback(nextFeedback);
@@ -348,7 +452,7 @@ const VoiceTodoList: React.FC = () => {
         nextHistoryEntries.forEach(entry => recordItem(entry));
       }
     },
-    [pushFeedback, recordItem, setTodos]
+    [activeListId, pushFeedback, recordItem, setLists]
   );
 
   const filteredTodos = useMemo(() => {
@@ -892,6 +996,113 @@ const VoiceTodoList: React.FC = () => {
     });
   }, [pushFeedback, staples, updateTodos]);
 
+  const handleOpenCreateList = useCallback(() => {
+    setListNameDraft('');
+    setIsCreateListOpen(true);
+  }, []);
+
+  const handleOpenRenameList = useCallback(() => {
+    if (!activeList) {
+      return;
+    }
+    setListNameDraft(activeList.name);
+    setIsRenameListOpen(true);
+  }, [activeList]);
+
+  const handleCreateList = useCallback(() => {
+    const trimmed = listNameDraft.trim();
+    if (!trimmed) {
+      pushFeedback({
+        message: 'Give your list a name.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    const alreadyExists = lists.some(
+      list => normalizeText(list.name) === normalizeText(trimmed)
+    );
+    if (alreadyExists) {
+      pushFeedback({
+        message: 'That list name already exists.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    const newList = buildList(trimmed);
+    setLists(prev => [newList, ...prev]);
+    setActiveListId(newList.id);
+    setIsCreateListOpen(false);
+    pushFeedback({
+      message: `Created list: ${trimmed}`,
+      severity: 'success',
+    });
+  }, [listNameDraft, lists, pushFeedback, setActiveListId, setLists]);
+
+  const handleRenameList = useCallback(() => {
+    if (!activeList) {
+      return;
+    }
+    const trimmed = listNameDraft.trim();
+    if (!trimmed) {
+      pushFeedback({
+        message: 'List name cannot be empty.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    const alreadyExists = lists.some(
+      list =>
+        list.id !== activeList.id &&
+        normalizeText(list.name) === normalizeText(trimmed)
+    );
+    if (alreadyExists) {
+      pushFeedback({
+        message: 'That list name already exists.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    setLists(prev =>
+      prev.map(list =>
+        list.id === activeList.id
+          ? { ...list, name: trimmed, updatedAt: Date.now() }
+          : list
+      )
+    );
+    setIsRenameListOpen(false);
+    pushFeedback({
+      message: `Renamed list to ${trimmed}.`,
+      severity: 'success',
+    });
+  }, [activeList, listNameDraft, lists, pushFeedback, setLists]);
+
+  const handleDeleteList = useCallback(() => {
+    if (!activeList) {
+      return;
+    }
+    if (lists.length <= 1) {
+      pushFeedback({
+        message: 'You need at least one list.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    const nextListId =
+      lists.find(list => list.id !== activeList.id)?.id ?? '';
+    setLists(prev => prev.filter(list => list.id !== activeList.id));
+    setActiveListId(nextListId);
+    setIsDeleteListOpen(false);
+    pushFeedback({
+      message: `Deleted list: ${activeList.name}`,
+      severity: 'info',
+    });
+  }, [activeList, lists, pushFeedback, setActiveListId, setLists]);
+
   const handleCopyList = useCallback(
     async (text: string) => {
       if (!text.trim()) {
@@ -994,7 +1205,8 @@ const VoiceTodoList: React.FC = () => {
   };
 
   const handleClearAllData = () => {
-    clearTodos();
+    clearLists();
+    setActiveListId('');
     setFilter('all');
     clearHistory();
     clearStaples();
@@ -1520,7 +1732,16 @@ const VoiceTodoList: React.FC = () => {
                   alignItems={{ sm: 'center' }}
                   justifyContent="space-between"
                 >
-                  <Typography variant="h6">Shopping List</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h6">Shopping List</Typography>
+                    {activeList ? (
+                      <Chip
+                        label={activeList.name}
+                        size="small"
+                        variant="outlined"
+                      />
+                    ) : null}
+                  </Stack>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                     <Button
                       variant="outlined"
@@ -1605,6 +1826,59 @@ const VoiceTodoList: React.FC = () => {
           </Stack>
 
           <Stack spacing={2.5} flex={1} minWidth={{ md: 320 }}>
+            <Paper sx={{ p: 2.5 }}>
+              <Stack spacing={2}>
+                <Typography variant="h6">Lists</Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="list-select-label">Active list</InputLabel>
+                  <Select
+                    labelId="list-select-label"
+                    value={activeList?.id ?? ''}
+                    label="Active list"
+                    onChange={event => setActiveListId(event.target.value as string)}
+                  >
+                    {lists.map(list => (
+                      <MenuItem key={list.id} value={list.id}>
+                        {list.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleOpenCreateList}
+                    sx={{ minHeight: 44, flex: 1 }}
+                  >
+                    New list
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={handleOpenRenameList}
+                    disabled={!activeList}
+                    sx={{ minHeight: 44, flex: 1 }}
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => setIsDeleteListOpen(true)}
+                    disabled={!activeList || lists.length <= 1}
+                    sx={{ minHeight: 44, flex: 1 }}
+                  >
+                    Delete
+                  </Button>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {activeList ? `${activeList.items.length} items in this list` : 'No list selected'}
+                </Typography>
+              </Stack>
+            </Paper>
+
             <Paper sx={{ p: 2.5 }}>
               <Stack spacing={2}>
                 <Typography variant="h6">Voice & preferences</Typography>
@@ -1715,6 +1989,96 @@ const VoiceTodoList: React.FC = () => {
         onCopy={handleCopyList}
         onShare={handleShareList}
       />
+
+      <Dialog
+        open={isCreateListOpen}
+        onClose={() => setIsCreateListOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>New list</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            fullWidth
+            value={listNameDraft}
+            onChange={event => setListNameDraft(event.target.value)}
+            label="List name"
+            variant="outlined"
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleCreateList();
+              }
+              if (event.key === 'Escape') {
+                setIsCreateListOpen(false);
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsCreateListOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateList}>
+            Create list
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isRenameListOpen}
+        onClose={() => setIsRenameListOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Rename list</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            fullWidth
+            value={listNameDraft}
+            onChange={event => setListNameDraft(event.target.value)}
+            label="List name"
+            variant="outlined"
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleRenameList();
+              }
+              if (event.key === 'Escape') {
+                setIsRenameListOpen(false);
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsRenameListOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleRenameList}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isDeleteListOpen}
+        onClose={() => setIsDeleteListOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Delete list</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This removes the list and its items. You can&apos;t undo this action.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsDeleteListOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteList}>
+            Delete list
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <EditTodoDialog
         todo={editingTodo}
