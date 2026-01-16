@@ -27,6 +27,7 @@
 | ⚡ | **Real-time Recognition** | Instant voice-to-text with visual feedback |
 | 📱 | **Responsive Layout** | Works beautifully on desktop, tablet, and mobile |
 | ⌨️ | **Hybrid Input** | Seamless fallback to traditional text entry |
+
 ---
 
 ## 🗣️ Voice Commands
