@@ -1,20 +1,18 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=50&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=52&descAlign=50">
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=50&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=52&descAlign=50">
-  <img alt="Vox Todo Header" src="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=50&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=52&descAlign=50" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50">
+  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:e5e7eb,100:cbd5e1&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=1e293b&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50">
+  <img alt="Vox Todo Header" src="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:0f172a&height=180&section=header&text=Vox%20Todo&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Voice-Powered%20Task%20Management&descSize=18&descAlignY=55&descAlign=50" width="100%">
 </picture>
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/license-MIT-3b82f6?style=flat-square)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/-TypeScript-3b82f6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/-React-0f172a?style=flat-square&logo=react&logoColor=61dafb)](https://react.dev/)
-[![Material-UI](https://img.shields.io/badge/-Material--UI-0f172a?style=flat-square&logo=mui&logoColor=007fff)](https://mui.com/)
-[![Web Speech API](https://img.shields.io/badge/-Web%20Speech%20API-10b981?style=flat-square&logo=google-chrome&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
+[![MIT License](https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square)](LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-0f172a?style=flat-square&logo=typescript&logoColor=3178c6)
+![React](https://img.shields.io/badge/React-0f172a?style=flat-square&logo=react&logoColor=61dafb)
+![Material UI](https://img.shields.io/badge/Material_UI-0f172a?style=flat-square&logo=mui&logoColor=007fff)
+![Web Speech API](https://img.shields.io/badge/Web_Speech_API-0f172a?style=flat-square&logo=googlechrome&logoColor=4285f4)
 
-**A modern todo app you can talk to. Add, complete, and delete tasks with your voice—or type if you prefer.**
-
-[Features](#-features) · [Demo](#-demo) · [Voice Commands](#-voice-commands) · [Installation](#-installation) · [Contributing](#-contributing)
+**A modern, voice-controlled todo list app. Speak your tasks into existence.**
 
 </div>
 
@@ -22,41 +20,13 @@
 
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
-
-### 🎤 Voice Control
-Speak naturally to manage your tasks. Powered by the Web Speech API for real-time recognition.
-
-### 📱 Responsive Design
-Works beautifully on desktop, tablet, and mobile devices.
-
-</td>
-<td width="50%">
-
-### 🎨 Material Design
-Clean, modern interface built with Material-UI components.
-
-### ⌨️ Keyboard Friendly
-Prefer typing? Full keyboard and text input support included.
-
-</td>
-</tr>
-</table>
-
----
-
-## 🎬 Demo
-
-<div align="center">
-
-<!-- Replace with actual demo GIF -->
-> 🎥 **Demo GIF coming soon!**
->
-> _Record a short clip showing voice commands in action_
-
-</div>
+| | Feature | Description |
+|---|---------|-------------|
+| 🎤 | **Voice Commands** | Add, complete, and delete tasks using natural speech |
+| 🎨 | **Material Design** | Clean, modern UI powered by Material-UI components |
+| ⚡ | **Real-time Recognition** | Instant voice-to-text with visual feedback |
+| 📱 | **Responsive Layout** | Works beautifully on desktop, tablet, and mobile |
+| ⌨️ | **Hybrid Input** | Seamless fallback to traditional text entry |
 
 ---
 
@@ -64,23 +34,23 @@ Prefer typing? Full keyboard and text input support included.
 
 | Command | Example | Action |
 |---------|---------|--------|
-| **Add** | _"Add buy groceries"_ | Creates a new task |
-| **Complete** | _"Complete buy groceries"_ | Marks the task as done |
-| **Delete** | _"Delete buy groceries"_ | Removes the task |
+| **Add** | *"Add buy groceries"* | Creates a new task |
+| **Complete** | *"Complete buy groceries"* | Marks task as done |
+| **Delete** | *"Delete buy groceries"* | Removes the task |
 
-> 💡 **Tip:** Speak clearly and wait for the microphone indicator before giving commands.
+> 💡 **Tip:** Speak clearly! The app uses case-insensitive exact matching on task names.
 
 ---
 
-## 🚀 Installation
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Node.js** v14 or higher
 - **npm** or **yarn**
-- **Chrome** or **Edge** (recommended for best speech recognition support)
+- A browser with Web Speech API support (Chrome/Edge recommended)
 
-### Quick Start
+### Installation
 
 ```bash
 # Clone the repository
@@ -90,11 +60,11 @@ cd vox-todo
 # Install dependencies
 npm install
 
-# Start the development server
+# Start development server
 npm start
 ```
 
-The app will open at [http://localhost:3000](http://localhost:3000).
+The app will open at `http://localhost:3000`.
 
 ---
 
@@ -102,19 +72,19 @@ The app will open at [http://localhost:3000](http://localhost:3000).
 
 | Browser | Speech Recognition | Notes |
 |---------|-------------------|-------|
-| Chrome | ✅ Full support | Recommended |
-| Edge | ✅ Full support | |
-| Firefox | ⚠️ Limited | May require flags |
-| Safari | ⚠️ Limited | Partial support |
+| Chrome | ✅ Full | Recommended |
+| Edge | ✅ Full | Chromium-based |
+| Safari | ⚠️ Partial | Limited support |
+| Firefox | ❌ None | Text input only |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+Contributions are welcome! Feel free to open an issue or submit a pull request.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
@@ -123,7 +93,7 @@ Contributions are welcome! Feel free to:
 
 ## 📄 License
 
-This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -134,9 +104,5 @@ This project is licensed under the MIT License—see the [LICENSE](LICENSE) file
 </picture>
 
 <div align="center">
-
-**Built with 🎤 by [Cotyledon Lab](https://github.com/cotyledonlab)**
-
-<sub>Part of the Cotyledon Lab open-source collection · [cotyledonlab.com](https://cotyledonlab.com)</sub>
-
+<sub>Built with ❤️ by <a href="https://github.com/cotyledonlab">Cotyledon Lab</a></sub>
 </div>
