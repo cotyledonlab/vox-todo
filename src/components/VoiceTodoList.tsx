@@ -41,12 +41,15 @@ import { useNotification } from '../hooks/useNotification';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useSpeechVoices } from '../hooks/useSpeechVoices';
+import { useItemHistory, type ItemHistoryInput } from '../hooks/useItemHistory';
 import BrowserCompatibilityBanner from './BrowserCompatibilityBanner';
 import TranscriptDisplay from './TranscriptDisplay';
 import FeedbackMessage from './FeedbackMessage';
 import NotificationSystem from './NotificationSystem';
 import GroceryItem from './GroceryItem';
 import CategorySection from './CategorySection';
+import QuickAddChips from './QuickAddChips';
+import StaplesManager, { type StapleItem } from './StaplesManager';
 import TaskFilters from './TaskFilters';
 import TaskStats from './TaskStats';
 import EmptyState from './EmptyState';
@@ -54,12 +57,19 @@ import EditTodoDialog from './EditTodoDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import ThemeToggle from './ThemeToggle';
 import VoiceSettings from './VoiceSettings';
+import {
+  getBestSuggestion,
+  getSuggestionMatches,
+  type SuggestionCandidate,
+} from '../utils/suggestionMatcher';
 
 const TODOS_STORAGE_KEY = 'vox-todo:todos';
 const FILTER_STORAGE_KEY = 'vox-todo:filter';
 const TTS_STORAGE_KEY = 'vox-todo:tts';
 const VOICE_STORAGE_KEY = 'vox-todo:voice';
+const STAPLES_STORAGE_KEY = 'vox-todo:staples';
 const STORAGE_VERSION = 2;
+const STAPLES_STORAGE_VERSION = 1;
 
 const normalizeText = (text: string) => text.trim().toLowerCase();
 
@@ -85,6 +95,14 @@ const createTodoId = () => {
 
 type BuildTodoInput = {
   text: string;
+  quantity?: number;
+  unit?: string;
+  category?: Category;
+  categorySource?: 'auto' | 'manual';
+};
+
+type AddItemInput = {
+  name: string;
   quantity?: number;
   unit?: string;
   category?: Category;
@@ -118,6 +136,11 @@ const resolveCommandItemName = (text: string) => {
     return parsed.name || text;
   }
   return text;
+};
+
+const buildItemLabel = (item: { name: string; quantity?: number; unit?: string }) => {
+  const quantityLabel = formatQuantity(item.quantity, item.unit);
+  return quantityLabel ? `${quantityLabel} ${item.name}` : item.name;
 };
 
 const migrateTodos = (value: Todo[], _version: number): Todo[] => {
@@ -227,6 +250,20 @@ const VoiceTodoList: React.FC = () => {
     version: STORAGE_VERSION,
   });
 
+  const { history, recentItems, frequentItems, recordItem, clearHistory } = useItemHistory({
+    maxItems: 20,
+  });
+
+  const {
+    value: staples,
+    setValue: setStaples,
+    clear: clearStaples,
+  } = useLocalStorageState<StapleItem[]>({
+    key: STAPLES_STORAGE_KEY,
+    initialValue: [],
+    version: STAPLES_STORAGE_VERSION,
+  });
+
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -285,18 +322,29 @@ const VoiceTodoList: React.FC = () => {
   }, [voicePreference, voices]);
 
   const updateTodos = useCallback(
-    (updater: (prev: Todo[]) => { todos: Todo[]; feedback?: FeedbackState }) => {
+    (
+      updater: (prev: Todo[]) => {
+        todos: Todo[];
+        feedback?: FeedbackState;
+        historyEntries?: ItemHistoryInput[];
+      }
+    ) => {
       let nextFeedback: FeedbackState | undefined;
+      let nextHistoryEntries: ItemHistoryInput[] | undefined;
       setTodos(prev => {
         const result = updater(prev);
         nextFeedback = result.feedback;
+        nextHistoryEntries = result.historyEntries;
         return result.todos;
       });
       if (nextFeedback) {
         pushFeedback(nextFeedback);
       }
+      if (nextHistoryEntries) {
+        nextHistoryEntries.forEach(entry => recordItem(entry));
+      }
     },
-    [pushFeedback, setTodos]
+    [pushFeedback, recordItem, setTodos]
   );
 
   const filteredTodos = useMemo(() => {
@@ -335,6 +383,91 @@ const VoiceTodoList: React.FC = () => {
     return meta;
   }, [groupedTodos]);
 
+  const suggestionCandidates = useMemo(() => {
+    const map = new Map<string, SuggestionCandidate>();
+    const addCandidate = (candidate: SuggestionCandidate) => {
+      const normalized = normalizeText(candidate.name);
+      if (!normalized || map.has(normalized)) {
+        return;
+      }
+      map.set(normalized, candidate);
+    };
+
+    todos.forEach(todo =>
+      addCandidate({
+        name: todo.text,
+        quantity: todo.quantity,
+        unit: todo.unit,
+        source: 'list',
+      })
+    );
+    history.forEach(entry =>
+      addCandidate({
+        name: entry.name,
+        quantity: entry.quantity,
+        unit: entry.unit,
+        source: 'history',
+      })
+    );
+    staples.forEach(staple =>
+      addCandidate({
+        name: staple.name,
+        quantity: staple.quantity,
+        unit: staple.unit,
+        source: 'staple',
+      })
+    );
+
+    return Array.from(map.values());
+  }, [history, staples, todos]);
+
+  const suggestionMatches = useMemo(
+    () =>
+      getSuggestionMatches(inputText, suggestionCandidates, { limit: 4, minScore: 0.68 })
+        .filter(
+          match =>
+            normalizeText(match.candidate.name) !== normalizeText(inputText)
+        ),
+    [inputText, suggestionCandidates]
+  );
+
+  const didYouMean = useMemo(() => {
+    const best = getBestSuggestion(inputText, suggestionCandidates, 0.84);
+    if (!best) {
+      return null;
+    }
+    if (normalizeText(best.candidate.name) === normalizeText(inputText)) {
+      return null;
+    }
+    return best;
+  }, [inputText, suggestionCandidates]);
+
+  const suggestionItems = useMemo(
+    () => suggestionMatches.map(match => match.candidate),
+    [suggestionMatches]
+  );
+
+  const quickAddSections = useMemo(() => {
+    const recent = recentItems.slice(0, 8).map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+    }));
+    const frequent = frequentItems
+      .filter(item => item.count > 1)
+      .slice(0, 8)
+      .map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      }));
+
+    return [
+      { title: 'Recent', items: recent },
+      { title: 'Frequent', items: frequent },
+    ];
+  }, [frequentItems, recentItems]);
+
   const counts = useMemo(() => {
     const completed = todos.filter(todo => todo.completed).length;
     const total = todos.length;
@@ -342,26 +475,16 @@ const VoiceTodoList: React.FC = () => {
     return { completed, total, active };
   }, [todos]);
 
-  const handleAddTodo = useCallback(
-    (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) {
+  const addItemToList = useCallback(
+    (item: AddItemInput) => {
+      let didAdd = false;
+      const cleanedName = item.name.trim();
+      if (!cleanedName) {
         pushFeedback({
           message: 'Add an item before submitting.',
           severity: 'warning',
         });
-        return;
-      }
-
-      const parsed = parseQuantityFromText(trimmed);
-      const name = parsed.hasQuantity ? parsed.name : trimmed;
-      const cleanedName = name.trim();
-      if (!cleanedName) {
-        pushFeedback({
-          message: 'Add an item name with your quantity.',
-          severity: 'warning',
-        });
-        return;
+        return false;
       }
 
       updateTodos(prev => {
@@ -378,30 +501,75 @@ const VoiceTodoList: React.FC = () => {
           };
         }
 
-        const inferredCategory = inferCategoryFromName(cleanedName);
+        const resolvedCategory = item.category ?? inferCategoryFromName(cleanedName);
         const nextTodo = buildTodo({
           text: cleanedName,
-          quantity: parsed.hasQuantity ? parsed.quantity : undefined,
-          unit: parsed.hasQuantity ? parsed.unit : undefined,
-          category: inferredCategory,
-          categorySource: 'auto',
+          quantity: item.quantity,
+          unit: item.unit,
+          category: resolvedCategory,
+          categorySource: item.categorySource ?? 'auto',
         });
-        const quantityLabel = formatQuantity(nextTodo.quantity, nextTodo.unit);
-        const displayLabel = quantityLabel
-          ? `${quantityLabel} ${nextTodo.text}`
-          : nextTodo.text;
+        const displayLabel = buildItemLabel({
+          name: nextTodo.text,
+          quantity: nextTodo.quantity,
+          unit: nextTodo.unit,
+        });
         const active = prev.filter(todo => !todo.completed);
         const completed = prev.filter(todo => todo.completed);
+        didAdd = true;
         return {
           todos: [...active, nextTodo, ...completed],
           feedback: {
             message: `Added to list: ${displayLabel}`,
             severity: 'success',
           },
+          historyEntries: [
+            {
+              name: nextTodo.text,
+              quantity: nextTodo.quantity,
+              unit: nextTodo.unit,
+              category: resolvedCategory,
+            },
+          ],
         };
       });
+
+      return didAdd;
     },
     [pushFeedback, updateTodos]
+  );
+
+  const handleAddTodo = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        pushFeedback({
+          message: 'Add an item before submitting.',
+          severity: 'warning',
+        });
+        return false;
+      }
+
+      const parsed = parseQuantityFromText(trimmed);
+      const name = parsed.hasQuantity ? parsed.name : trimmed;
+      const cleanedName = name.trim();
+      if (!cleanedName) {
+        pushFeedback({
+          message: 'Add an item name with your quantity.',
+          severity: 'warning',
+        });
+        return false;
+      }
+
+      return addItemToList({
+        name: cleanedName,
+        quantity: parsed.hasQuantity ? parsed.quantity : undefined,
+        unit: parsed.hasQuantity ? parsed.unit : undefined,
+        category: inferCategoryFromName(cleanedName),
+        categorySource: 'auto',
+      });
+    },
+    [addItemToList, pushFeedback]
   );
 
   const handleToggleTodo = useCallback(
@@ -554,9 +722,171 @@ const VoiceTodoList: React.FC = () => {
 
   const handleAddSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    handleAddTodo(inputText);
-    setInputText('');
+    const didAdd = handleAddTodo(inputText);
+    if (didAdd) {
+      setInputText('');
+    }
   };
+
+  const handleSuggestionFill = useCallback((candidate: SuggestionCandidate) => {
+    setInputText(
+      buildItemLabel({
+        name: candidate.name,
+        quantity: candidate.quantity,
+        unit: candidate.unit,
+      })
+    );
+    inputRef.current?.focus();
+  }, []);
+
+  const handleQuickAdd = useCallback(
+    (item: { name: string; quantity?: number; unit?: string }) => {
+      addItemToList({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: inferCategoryFromName(item.name),
+        categorySource: 'auto',
+      });
+    },
+    [addItemToList]
+  );
+
+  const handleAddStaple = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        pushFeedback({
+          message: 'Add a staple before submitting.',
+          severity: 'warning',
+        });
+        return false;
+      }
+
+      const parsed = parseQuantityFromText(trimmed);
+      const name = parsed.hasQuantity ? parsed.name : trimmed;
+      const cleanedName = name.trim();
+      if (!cleanedName) {
+        pushFeedback({
+          message: 'Add a staple name with your quantity.',
+          severity: 'warning',
+        });
+        return false;
+      }
+
+      const inferredCategory = inferCategoryFromName(cleanedName);
+      setStaples(prev => {
+        const normalized = normalizeText(cleanedName);
+        const index = prev.findIndex(staple => normalizeText(staple.name) === normalized);
+        if (index >= 0) {
+          const existing = prev[index];
+          const next = [...prev];
+          next[index] = {
+            ...existing,
+            name: cleanedName,
+            quantity: parsed.hasQuantity ? parsed.quantity : existing.quantity,
+            unit: parsed.hasQuantity ? parsed.unit : existing.unit,
+            category: inferredCategory,
+          };
+          return next;
+        }
+        return [
+          ...prev,
+          {
+            id: createTodoId(),
+            name: cleanedName,
+            quantity: parsed.hasQuantity ? parsed.quantity : undefined,
+            unit: parsed.hasQuantity ? parsed.unit : undefined,
+            category: inferredCategory,
+          },
+        ];
+      });
+
+      pushFeedback({
+        message: `Saved staple: ${buildItemLabel({
+          name: cleanedName,
+          quantity: parsed.hasQuantity ? parsed.quantity : undefined,
+          unit: parsed.hasQuantity ? parsed.unit : undefined,
+        })}`,
+        severity: 'success',
+      });
+
+      return true;
+    },
+    [pushFeedback, setStaples]
+  );
+
+  const handleRemoveStaple = useCallback(
+    (id: string) => {
+      setStaples(prev => prev.filter(staple => staple.id !== id));
+    },
+    [setStaples]
+  );
+
+  const handleAddAllStaples = useCallback(() => {
+    if (staples.length === 0) {
+      pushFeedback({
+        message: 'Add staples first to use quick add.',
+        severity: 'info',
+      });
+      return;
+    }
+
+    updateTodos(prev => {
+      const existing = new Set(prev.map(todo => normalizeText(todo.text)));
+      const additions: Todo[] = [];
+      const historyEntries: ItemHistoryInput[] = [];
+
+      staples.forEach(staple => {
+        const cleanedName = staple.name.trim();
+        if (!cleanedName) {
+          return;
+        }
+        const normalized = normalizeText(cleanedName);
+        if (existing.has(normalized)) {
+          return;
+        }
+        const category = staple.category ?? inferCategoryFromName(cleanedName);
+        const nextTodo = buildTodo({
+          text: cleanedName,
+          quantity: staple.quantity,
+          unit: staple.unit,
+          category,
+          categorySource: 'auto',
+        });
+        additions.push(nextTodo);
+        historyEntries.push({
+          name: nextTodo.text,
+          quantity: nextTodo.quantity,
+          unit: nextTodo.unit,
+          category,
+        });
+        existing.add(normalized);
+      });
+
+      if (additions.length === 0) {
+        return {
+          todos: prev,
+          feedback: {
+            message: 'Staples are already on your list.',
+            severity: 'info',
+          },
+        };
+      }
+
+      const active = prev.filter(todo => !todo.completed);
+      const completed = prev.filter(todo => todo.completed);
+
+      return {
+        todos: [...active, ...additions, ...completed],
+        feedback: {
+          message: `Added ${additions.length} staple${additions.length === 1 ? '' : 's'} to your list.`,
+          severity: 'success',
+        },
+        historyEntries,
+      };
+    });
+  }, [pushFeedback, staples, updateTodos]);
 
   const handleClearCompleted = useCallback(() => {
     updateTodos(prev => {
@@ -592,6 +922,8 @@ const VoiceTodoList: React.FC = () => {
   const handleClearAllData = () => {
     clearTodos();
     setFilter('all');
+    clearHistory();
+    clearStaples();
     pushFeedback({
       message: 'Local data cleared.',
       severity: 'info',
@@ -1050,6 +1382,7 @@ const VoiceTodoList: React.FC = () => {
             <Paper sx={{ p: 2.5 }}>
               <Stack spacing={2}>
                 <Typography variant="h6">Add item</Typography>
+                <QuickAddChips sections={quickAddSections} onSelect={handleQuickAdd} />
                 <Box component="form" onSubmit={handleAddSubmit}>
                   <Stack spacing={1.5} direction={{ xs: 'column', sm: 'row' }}>
                     <TextField
@@ -1057,6 +1390,12 @@ const VoiceTodoList: React.FC = () => {
                       inputRef={inputRef}
                       value={inputText}
                       onChange={event => setInputText(event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === 'Tab' && suggestionItems[0]) {
+                          event.preventDefault();
+                          handleSuggestionFill(suggestionItems[0]);
+                        }
+                      }}
                       placeholder="Add item..."
                       variant="outlined"
                       size="medium"
@@ -1073,6 +1412,24 @@ const VoiceTodoList: React.FC = () => {
                     </Button>
                   </Stack>
                 </Box>
+                {didYouMean ? (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="caption" color="text.secondary">
+                      Did you mean
+                    </Typography>
+                    <Chip
+                      label={buildItemLabel(didYouMean.candidate)}
+                      onClick={() => handleSuggestionFill(didYouMean.candidate)}
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                    />
+                  </Stack>
+                ) : null}
+                <QuickAddChips
+                  sections={[{ title: 'Suggestions', items: suggestionItems }]}
+                  onSelect={handleSuggestionFill}
+                />
                 <TranscriptDisplay
                   interimTranscript={interimTranscript}
                   finalTranscript={finalTranscript}
@@ -1207,6 +1564,15 @@ const VoiceTodoList: React.FC = () => {
                 <Divider />
                 <ThemeToggle />
               </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 2.5 }}>
+              <StaplesManager
+                staples={staples}
+                onAdd={handleAddStaple}
+                onRemove={handleRemoveStaple}
+                onAddAll={handleAddAllStaples}
+              />
             </Paper>
 
             <TaskStats

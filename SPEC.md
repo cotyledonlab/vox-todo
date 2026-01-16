@@ -173,9 +173,9 @@ type Category =
 - [x] Voice command: "Change milk to 3 gallons"
 
 #### 2.3 Smart Suggestions
-- [ ] Fuzzy match existing items ("mil" suggests "milk")
-- [ ] Auto-complete from history
-- [ ] "Did you mean...?" for close matches
+- [x] Fuzzy match existing items ("mil" suggests "milk")
+- [x] Auto-complete from history
+- [x] "Did you mean...?" for close matches
 
 **New files**:
 - `utils/categoryMapper.ts` - Item → Category mapping
@@ -189,19 +189,19 @@ type Category =
 **Goal**: One-tap re-add for common items
 
 #### 3.1 Recent Items
-- [ ] Track last 20 unique items added
-- [ ] "Recent" chip row above input
-- [ ] Tap to instantly re-add
+- [x] Track last 20 unique items added
+- [x] "Recent" chip row above input
+- [x] Tap to instantly re-add
 
 #### 3.2 Frequent Items
-- [ ] Track item add frequency
-- [ ] "Frequently bought" section
-- [ ] Smart sorting by recency + frequency
+- [x] Track item add frequency
+- [x] "Frequently bought" section
+- [x] Smart sorting by recency + frequency
 
 #### 3.3 Staples List
-- [ ] User-defined "always need" items
-- [ ] "Add all staples" button
-- [ ] Manage staples in settings
+- [x] User-defined "always need" items
+- [x] "Add all staples" button
+- [x] Manage staples in settings
 
 **New files**:
 - `hooks/useItemHistory.ts` - Track item frequency/recency

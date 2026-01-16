@@ -26,6 +26,8 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | **Check Off Items** | Tap to mark items as picked up |
 | **Smart Categories** | Auto-group items by aisle with manual overrides |
 | **Quantities** | Parse "2 gallons of milk" and show amounts inline |
+| **Smart Suggestions** | Fuzzy match + history autocomplete while typing |
+| **Quick Add** | Recent/frequent items and staples for one-tap re-add |
 | **Real-time Feedback** | See what was heard, get confirmation |
 | **Dark/Light Mode** | Easy on the eyes in any lighting |
 | **Offline Storage** | Your list persists locally |
@@ -62,10 +64,10 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 - [x] Unit detection (lbs, oz, count, etc.)
 
 ### Phase 3: Quick Add
-- [ ] Recent items list for one-tap re-add
-- [ ] Frequently bought items
-- [ ] Suggested items based on history
-- [ ] "Staples" list you can bulk-add
+- [x] Recent items list for one-tap re-add
+- [x] Frequently bought items
+- [x] Suggested items based on history
+- [x] "Staples" list you can bulk-add
 
 ### Phase 4: Sharing
 - [ ] Copy list to clipboard (plain text)

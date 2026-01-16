@@ -10,7 +10,7 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 
 **Tech stack:** React 19, Vite 7, TypeScript 5.9, Material-UI v7, Web Speech API, localStorage
 
-**Current state:** Grocery-first voice list with shopping-mode UX and smart organization (categories + quantities)
+**Current state:** Grocery-first voice list with shopping-mode UX, smart organization, and quick add (history + staples)
 
 ---
 
@@ -22,9 +22,13 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 | `src/components/VoiceTodoListStyles.ts` | Centralized MUI styles |
 | `src/components/GroceryItem.tsx` | Individual list item component |
 | `src/components/CategorySection.tsx` | Collapsible category group |
+| `src/components/QuickAddChips.tsx` | Recent/frequent/suggestion chip rows |
+| `src/components/StaplesManager.tsx` | Staples list management UI |
 | `src/utils/voiceCommandParser.ts` | Parses voice input into commands |
 | `src/utils/categoryMapper.ts` | Item → Category mapping |
 | `src/utils/quantityParser.ts` | Parse quantities from natural language |
+| `src/utils/suggestionMatcher.ts` | Fuzzy match + suggestions engine |
+| `src/hooks/useItemHistory.ts` | Recent/frequent item history tracking |
 | `src/theme/theme.ts` | MUI theme (colors, typography, component overrides) |
 | `src/hooks/useLocalStorage.ts` | Persistent state hook with migration support |
 | `src/main.tsx` | App entry point (Vite) |
@@ -133,10 +137,10 @@ Run: `npm run build`
 
 See `SPEC.md` for full roadmap. Immediate focus:
 
-1. **Quick add** - Recent items, one-tap re-add
-2. **Smart suggestions** - Fuzzy match + history
-3. **Sharing** - Copy/share/export flows
-4. **Multi-list** - Named lists + templates
+1. **Sharing** - Copy/share/export flows
+2. **Multi-list** - Named lists + templates
+3. **Testing** - Add coverage for suggestions + quick add
+4. **Performance** - Virtual list + debounce storage
 
 ---
 
