@@ -99,7 +99,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:020617&height=80&section=footer">
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:e5e7eb,100:cbd5e1&height=80&section=footer">
+  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:eff6ff,100:dbeafe&height=80&section=footer">
   <img alt="Footer" src="https://capsule-render.vercel.app/api?type=waving&color=0:0f172a,100:020617&height=80&section=footer" width="100%">
 </picture>
 
