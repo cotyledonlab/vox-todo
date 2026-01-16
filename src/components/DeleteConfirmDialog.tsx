@@ -23,12 +23,12 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   onConfirm,
 }) => (
   <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-    <DialogTitle>Delete task?</DialogTitle>
+    <DialogTitle>Delete item?</DialogTitle>
     <DialogContent>
       <DialogContentText>
         {todo
           ? `This will permanently remove "${todo.text}".`
-          : 'This will permanently remove the task.'}
+          : 'This will permanently remove the item.'}
       </DialogContentText>
     </DialogContent>
     <DialogActions>

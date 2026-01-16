@@ -59,7 +59,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
               fontSize: '0.7rem',
             }}
           >
-            Progress
+            Shopping progress
           </Typography>
           <Stack direction="row" alignItems="baseline" spacing={1}>
             <Typography
@@ -77,7 +77,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
               {progress}%
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              complete
+              picked up
             </Typography>
           </Stack>
         </Box>
@@ -116,7 +116,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
               </Typography>
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-              Active
+              Need
             </Typography>
           </Box>
           <Box
@@ -136,7 +136,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
               </Typography>
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-              Done
+              Picked up
             </Typography>
           </Box>
         </Stack>
@@ -150,7 +150,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
             fullWidth
             sx={{ py: 1.25 }}
           >
-            Mark all complete
+            Mark all picked up
           </Button>
           <Button
             variant="outlined"
@@ -160,7 +160,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
             fullWidth
             sx={{ py: 1 }}
           >
-            Clear completed
+            Clear checked
           </Button>
           <Stack direction="row" spacing={1}>
             <Button
@@ -179,7 +179,7 @@ const TaskStats: React.FC<TaskStatsProps> = ({
                 },
               }}
             >
-              Delete all
+              Delete list
             </Button>
             <Button
               variant="text"

@@ -8,6 +8,8 @@ const highlightKeywords = (text: string) => {
     'delete',
     'remove',
     'complete',
+    'got',
+    'picked',
     'finish',
     'edit',
     'update',

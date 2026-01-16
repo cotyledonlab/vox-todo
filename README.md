@@ -33,10 +33,10 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 | Command | Example | Action |
 |---------|---------|--------|
 | **Add** | "Add milk" | Adds item to list |
-| **Complete/Done** | "Complete milk" | Marks as picked up |
+| **Got/Picked up** | "Got milk" | Marks as picked up |
 | **Delete/Remove** | "Delete milk" | Removes from list |
-| **Clear completed** | "Clear completed" | Removes checked items |
-| **Show all/active/completed** | "Show active" | Filters the list |
+| **Clear checked** | "Clear checked" | Removes checked items |
+| **Show all/need/picked up** | "Show need" | Filters the list |
 
 ---
 
@@ -47,9 +47,9 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 - [x] Check off items while shopping
 - [x] Persistent local storage
 - [x] Clean, modern UI
-- [ ] Rename/rebrand to Vox Grocery
-- [ ] Simplify UI for grocery-specific workflow
-- [ ] Large touch targets for in-store use
+- [x] Rename/rebrand to Vox Grocery
+- [x] Simplify UI for grocery-specific workflow
+- [x] Large touch targets for in-store use
 
 ### Phase 2: Smart Organization
 - [ ] Auto-categorize items (Produce, Dairy, Meat, Frozen, Pantry, etc.)
@@ -97,10 +97,17 @@ A focused, voice-first grocery list app. Speak your items, check them off while 
 git clone https://github.com/cotyledonlab/vox-todo.git
 cd vox-todo
 npm install
-npm start
+npm run dev
 ```
 
-Opens at `http://localhost:3000`
+Opens at `http://localhost:5173`
+
+Build and preview:
+
+```bash
+npm run build
+npm run preview
+```
 
 ### Browser Support
 
@@ -115,9 +122,10 @@ Opens at `http://localhost:3000`
 
 ## Tech Stack
 
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Material-UI v5** - Component library
+- **React 19** - UI framework
+- **Vite 7** - Dev server and build tooling
+- **TypeScript 5.9** - Type safety
+- **Material-UI v7** - Component library
 - **Web Speech API** - Voice recognition
 - **localStorage** - Offline persistence
 

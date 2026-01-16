@@ -8,9 +8,9 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 
 **What is this?** A voice-powered grocery list React app. Users say "Add milk" and it appears on their list.
 
-**Tech stack:** React 18, TypeScript, Material-UI v5, Web Speech API, localStorage
+**Tech stack:** React 19, Vite 7, TypeScript 5.9, Material-UI v7, Web Speech API, localStorage
 
-**Current state:** Functional voice todo app being pivoted to grocery-focused UX
+**Current state:** Grocery-first voice list with shopping-mode UX
 
 ---
 
@@ -20,10 +20,13 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 |------|---------|
 | `src/components/VoiceTodoList.tsx` | Main component, ~990 lines, handles all state and logic |
 | `src/components/VoiceTodoListStyles.ts` | Centralized MUI styles |
-| `src/components/TodoItem.tsx` | Individual list item component |
+| `src/components/GroceryItem.tsx` | Individual list item component |
 | `src/utils/voiceCommandParser.ts` | Parses voice input into commands |
 | `src/theme/theme.ts` | MUI theme (colors, typography, component overrides) |
 | `src/hooks/useLocalStorage.ts` | Persistent state hook with migration support |
+| `src/main.tsx` | App entry point (Vite) |
+| `index.html` | HTML shell (Vite) |
+| `vite.config.ts` | Vite config |
 | `SPEC.md` | Technical specification and roadmap |
 | `README.md` | User-facing documentation |
 
@@ -45,7 +48,7 @@ This document provides context for AI coding agents (Claude, GPT, Copilot, etc.)
 ### Voice Recognition
 - Web Speech API (`webkitSpeechRecognition`)
 - Commands parsed in `voiceCommandParser.ts`
-- Supported: add, complete, delete, edit, move, filter, clear completed, help, count
+- Supported: add, got/picked up, delete, edit, move, filter, clear checked, help, count
 
 ### Data Model
 ```typescript
@@ -104,7 +107,7 @@ Currently minimal test coverage. When adding tests:
 - Mock `localStorage` and `SpeechRecognition`
 - Focus on user interactions, not implementation
 
-Run: `npm test`
+Run: `npm run build`
 
 ---
 
@@ -133,9 +136,9 @@ See `SPEC.md` for full roadmap. Immediate focus:
 
 ```bash
 npm install
-npm start        # Dev server at localhost:3000
+npm run dev      # Dev server at localhost:5173
 npm run build    # Production build
-npm test         # Run tests
+npm run preview  # Preview production build
 ```
 
 Requires Chrome/Edge for voice features. Firefox works text-only.
@@ -158,3 +161,13 @@ Accessible by default, good mobile support, consistent design system. The app ne
 ## Questions?
 
 Check `SPEC.md` for detailed technical plans. The codebase is straightforward - when in doubt, read `VoiceTodoList.tsx`.
+
+---
+
+## Completion Checklist
+
+When work is completed:
+1. Update `README.md` and `AGENTS.md` to reflect the changes.
+2. Check off completed items in `SPEC.md`.
+3. Commit changes with a clear message.
+4. Push the commit to the remote as the last step.

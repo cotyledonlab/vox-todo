@@ -4,6 +4,11 @@ import {
   Button,
   Chip,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Fab,
   FormControlLabel,
   List,
   ListItem,
@@ -12,6 +17,7 @@ import {
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
@@ -37,7 +43,7 @@ import BrowserCompatibilityBanner from './BrowserCompatibilityBanner';
 import TranscriptDisplay from './TranscriptDisplay';
 import FeedbackMessage from './FeedbackMessage';
 import NotificationSystem from './NotificationSystem';
-import TodoItem from './TodoItem';
+import GroceryItem from './GroceryItem';
 import TaskFilters from './TaskFilters';
 import TaskStats from './TaskStats';
 import EmptyState from './EmptyState';
@@ -83,6 +89,12 @@ const buildTodo = (text: string): Todo => {
     createdAt: now,
     updatedAt: now,
   };
+};
+
+const orderTodosByCompletion = (items: Todo[]) => {
+  const active = items.filter(todo => !todo.completed);
+  const completed = items.filter(todo => todo.completed);
+  return [...active, ...completed];
 };
 
 const migrateTodos = (value: Todo[], _version: number): Todo[] => {
@@ -175,6 +187,13 @@ const VoiceTodoList: React.FC = () => {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [deletingTodo, setDeletingTodo] = useState<Todo | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  const triggerHapticFeedback = useCallback(() => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(12);
+    }
+  }, []);
 
   const pushFeedback = useCallback(
     (next: FeedbackState) => {
@@ -242,7 +261,7 @@ const VoiceTodoList: React.FC = () => {
       const trimmed = text.trim();
       if (!trimmed) {
         pushFeedback({
-          message: 'Add a task before submitting.',
+          message: 'Add an item before submitting.',
           severity: 'warning',
         });
         return;
@@ -256,17 +275,19 @@ const VoiceTodoList: React.FC = () => {
           return {
             todos: prev,
             feedback: {
-              message: 'That task already exists.',
+              message: 'That item is already on your list.',
               severity: 'warning',
             },
           };
         }
 
         const nextTodo = buildTodo(trimmed);
+        const active = prev.filter(todo => !todo.completed);
+        const completed = prev.filter(todo => todo.completed);
         return {
-          todos: [...prev, nextTodo],
+          todos: [...active, nextTodo, ...completed],
           feedback: {
-            message: `Task added: ${nextTodo.text}`,
+            message: `Added to list: ${nextTodo.text}`,
             severity: 'success',
           },
         };
@@ -282,27 +303,32 @@ const VoiceTodoList: React.FC = () => {
         if (!target) {
           return {
             todos: prev,
-            feedback: { message: 'Task not found.', severity: 'error' },
+            feedback: { message: 'Item not found.', severity: 'error' },
           };
         }
 
+        const nextCompleted = !target.completed;
         const nextTodos = prev.map(todo =>
           todo.id === id
-            ? { ...todo, completed: !todo.completed, updatedAt: Date.now() }
+            ? { ...todo, completed: nextCompleted, updatedAt: Date.now() }
             : todo
         );
+        const orderedTodos = orderTodosByCompletion(nextTodos);
+        if (nextCompleted) {
+          triggerHapticFeedback();
+        }
         return {
-          todos: nextTodos,
+          todos: orderedTodos,
           feedback: {
-            message: target.completed
-              ? `Marked "${target.text}" active.`
-              : `Completed "${target.text}".`,
+            message: nextCompleted
+              ? `Picked up "${target.text}".`
+              : `Put "${target.text}" back on the list.`,
             severity: 'success',
           },
         };
       });
     },
-    [updateTodos]
+    [triggerHapticFeedback, updateTodos]
   );
 
   const handleEditTodo = useCallback(
@@ -313,7 +339,7 @@ const VoiceTodoList: React.FC = () => {
           return {
             todos: prev,
             feedback: {
-              message: 'Task text cannot be empty.',
+              message: 'Item name cannot be empty.',
               severity: 'warning',
             },
           };
@@ -327,7 +353,7 @@ const VoiceTodoList: React.FC = () => {
         return {
           todos: nextTodos,
           feedback: {
-            message: `Updated task: ${trimmed}`,
+            message: `Updated item: ${trimmed}`,
             severity: 'success',
           },
         };
@@ -341,7 +367,7 @@ const VoiceTodoList: React.FC = () => {
       updateTodos(prev => ({
         todos: prev.filter(item => item.id !== todo.id),
         feedback: {
-          message: `Deleted "${todo.text}".`,
+          message: `Removed "${todo.text}" from the list.`,
           severity: 'info',
         },
       }));
@@ -356,7 +382,7 @@ const VoiceTodoList: React.FC = () => {
         if (index < 0) {
           return {
             todos: prev,
-            feedback: { message: 'Task not found.', severity: 'error' },
+            feedback: { message: 'Item not found.', severity: 'error' },
           };
         }
 
@@ -365,7 +391,7 @@ const VoiceTodoList: React.FC = () => {
           return {
             todos: prev,
             feedback: {
-              message: `Cannot move task ${direction}.`,
+              message: `Cannot move item ${direction}.`,
               severity: 'warning',
             },
           };
@@ -376,7 +402,7 @@ const VoiceTodoList: React.FC = () => {
         nextTodos.splice(nextIndex, 0, moved);
 
         return {
-          todos: nextTodos,
+          todos: orderTodosByCompletion(nextTodos),
           feedback: {
             message: `Moved "${moved.text}" ${direction}.`,
             severity: 'success',
@@ -393,32 +419,34 @@ const VoiceTodoList: React.FC = () => {
     setInputText('');
   };
 
-  const handleClearCompleted = () => {
+  const handleClearCompleted = useCallback(() => {
     updateTodos(prev => {
       const nextTodos = prev.filter(todo => !todo.completed);
       return {
         todos: nextTodos,
         feedback: {
-          message: 'Cleared completed tasks.',
+          message: 'Cleared checked items.',
           severity: 'info',
         },
       };
     });
-  };
+  }, [updateTodos]);
 
   const handleMarkAllComplete = () => {
     updateTodos(prev => ({
-      todos: prev.map(todo =>
-        todo.completed ? todo : { ...todo, completed: true, updatedAt: Date.now() }
+      todos: orderTodosByCompletion(
+        prev.map(todo =>
+          todo.completed ? todo : { ...todo, completed: true, updatedAt: Date.now() }
+        )
       ),
-      feedback: { message: 'Marked all tasks complete.', severity: 'success' },
+      feedback: { message: 'Marked everything as picked up.', severity: 'success' },
     }));
   };
 
   const handleDeleteAll = () => {
     updateTodos(() => ({
       todos: [],
-      feedback: { message: 'Deleted all tasks.', severity: 'warning' },
+      feedback: { message: 'Deleted all items.', severity: 'warning' },
     }));
   };
 
@@ -443,7 +471,7 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'help') {
         pushFeedback({
-          message: 'Try: add, complete, delete, edit, move, clear completed, show all/active/completed.',
+          message: 'Try: add, got, delete, edit, move, clear checked, show all/active/picked up.',
           severity: 'info',
         });
         return;
@@ -451,7 +479,7 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'count') {
         pushFeedback({
-          message: `You have ${counts.active} active tasks out of ${counts.total}.`,
+          message: `You have ${counts.active} items left out of ${counts.total}.`,
           severity: 'info',
         });
         return;
@@ -459,8 +487,13 @@ const VoiceTodoList: React.FC = () => {
 
       if (command.type === 'filter') {
         setFilter(command.filter);
+        const filterLabel = command.filter === 'completed'
+          ? 'picked up'
+          : command.filter === 'active'
+            ? 'needed'
+            : 'all';
         pushFeedback({
-          message: `Showing ${command.filter} tasks.`,
+          message: `Showing ${filterLabel} items.`,
           severity: 'info',
         });
         return;
@@ -485,14 +518,14 @@ const VoiceTodoList: React.FC = () => {
           if (matches.length === 0) {
             return {
               todos: prev,
-              feedback: { message: 'Task not found.', severity: 'error' },
+              feedback: { message: 'Item not found.', severity: 'error' },
             };
           }
 
           return {
             todos: prev.filter(todo => normalizeText(todo.text) !== matchText),
             feedback: {
-              message: `Deleted ${matches.length} task(s) named "${command.text}".`,
+              message: `Removed ${matches.length} item(s) named "${command.text}".`,
               severity: 'info',
             },
           };
@@ -509,19 +542,21 @@ const VoiceTodoList: React.FC = () => {
           if (matches.length === 0) {
             return {
               todos: prev,
-              feedback: { message: 'Task not found.', severity: 'error' },
+              feedback: { message: 'Item not found.', severity: 'error' },
             };
           }
 
-          const nextTodos = prev.map(todo =>
+          const nextTodos = orderTodosByCompletion(
+            prev.map(todo =>
             normalizeText(todo.text) === matchText
               ? { ...todo, completed: true, updatedAt: Date.now() }
               : todo
+            )
           );
           return {
             todos: nextTodos,
             feedback: {
-              message: `Completed ${matches.length} task(s) named "${command.text}".`,
+              message: `Picked up ${matches.length} item(s) named "${command.text}".`,
               severity: 'success',
             },
           };
@@ -538,7 +573,7 @@ const VoiceTodoList: React.FC = () => {
           if (!match) {
             return {
               todos: prev,
-              feedback: { message: 'Task not found.', severity: 'error' },
+              feedback: { message: 'Item not found.', severity: 'error' },
             };
           }
 
@@ -567,7 +602,7 @@ const VoiceTodoList: React.FC = () => {
           if (index < 0) {
             return {
               todos: prev,
-              feedback: { message: 'Task not found.', severity: 'error' },
+              feedback: { message: 'Item not found.', severity: 'error' },
             };
           }
 
@@ -576,7 +611,7 @@ const VoiceTodoList: React.FC = () => {
             return {
               todos: prev,
               feedback: {
-                message: `Cannot move task ${command.direction}.`,
+                message: `Cannot move item ${command.direction}.`,
                 severity: 'warning',
               },
             };
@@ -587,7 +622,7 @@ const VoiceTodoList: React.FC = () => {
           nextTodos.splice(nextIndex, 0, moved);
 
           return {
-            todos: nextTodos,
+            todos: orderTodosByCompletion(nextTodos),
             feedback: {
               message: `Moved "${moved.text}" ${command.direction}.`,
               severity: 'success',
@@ -741,39 +776,37 @@ const VoiceTodoList: React.FC = () => {
   ]);
 
   const renderCommandList = () => (
-    <Paper sx={styles.commandList} elevation={0}>
-      <Stack spacing={1}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          Voice commands
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemText primary='Add [task]' secondary='Add buy groceries' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Complete [task]' secondary='Complete buy groceries' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Delete [task]' secondary='Delete buy groceries' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Edit [task] to [new task]' secondary='Edit buy milk to buy oat milk' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Move [task] up/down' secondary='Move buy groceries up' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Show all/active/completed' secondary='Show completed' />
-          </ListItem>
-          <ListItem>
-            <ListItemText primary='Clear completed' secondary='Clear completed' />
-          </ListItem>
-        </List>
-        <Typography variant="caption" color="text.secondary">
-          Shortcuts: Ctrl+Enter starts voice · Ctrl+F focuses filters
-        </Typography>
-      </Stack>
-    </Paper>
+    <Stack spacing={1.5}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+        Voice examples
+      </Typography>
+      <List dense>
+        <ListItem>
+          <ListItemText primary='Add [item]' secondary='Add oat milk' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Got [item]' secondary='Got spinach' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Delete [item]' secondary='Delete cereal' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Edit [item] to [new item]' secondary='Edit eggs to cage-free eggs' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Move [item] up/down' secondary='Move apples up' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Show all/active/picked up' secondary='Show picked up' />
+        </ListItem>
+        <ListItem>
+          <ListItemText primary='Clear checked' secondary='Clear checked' />
+        </ListItem>
+      </List>
+      <Typography variant="caption" color="text.secondary">
+        Shortcuts: Ctrl+Enter starts voice · Ctrl+F focuses filters
+      </Typography>
+    </Stack>
   );
 
   return (
@@ -790,7 +823,7 @@ const VoiceTodoList: React.FC = () => {
               <Box>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant={isMobile ? 'h4' : 'h3'}>
-                    Vox Todo
+                    Vox Grocery
                   </Typography>
                   <Box sx={styles.floatingBadge}>
                     {voiceSupported ? (
@@ -802,12 +835,12 @@ const VoiceTodoList: React.FC = () => {
                   </Box>
                 </Stack>
                 <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                  Speak, edit, and organize tasks in real time.
+                  Capture your shopping list fast with voice or tap.
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Chip label={`${counts.total} tasks`} color="primary" />
-                <Chip label={`${counts.completed} done`} color="success" />
+                <Chip label={`${counts.total} items`} color="primary" />
+                <Chip label={`${counts.completed} picked up`} color="success" />
               </Stack>
             </Stack>
           </Stack>
@@ -818,111 +851,68 @@ const VoiceTodoList: React.FC = () => {
           spacing={3}
           sx={{ mt: 3 }}
         >
-          <Stack spacing={2.5} flex={1} minWidth={{ md: 320 }}>
+          <Stack spacing={2.5} flex={2}>
             <BrowserCompatibilityBanner
               browser={browserInfo}
               supported={voiceSupported}
             />
             <Paper sx={{ p: 2.5 }}>
               <Stack spacing={2}>
-                <Typography variant="h6">Voice capture</Typography>
-                <Button
-                  variant="contained"
-                  startIcon={voiceSupported ? <MicIcon /> : <MicOffIcon />}
-                  onClick={handleVoiceToggle}
-                  disabled={!voiceSupported}
-                  className={isListening ? 'listening' : ''}
-                  sx={styles.voiceButton}
-                  fullWidth
-                  aria-label="Start voice command"
-                  aria-pressed={isListening}
-                >
-                  {isListening ? 'Listening...' : 'Start voice command'}
-                </Button>
-                <TranscriptDisplay
-                  interimTranscript={interimTranscript}
-                  finalTranscript={finalTranscript}
-                  isListening={isListening}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={ttsEnabled}
-                      onChange={event => setTtsEnabled(event.target.checked)}
-                    />
-                  }
-                  label="Speak confirmations"
-                />
-                <VoiceSettings
-                  voices={voices}
-                  value={voiceSelectValue}
-                  onChange={value => setVoicePreference(value)}
-                  disabled={!ttsSupported || voices.length === 0}
-                />
-                {!voiceSupported ? (
-                  <Chip
-                    icon={<MicOffIcon />}
-                    label="Voice input unavailable"
-                    variant="outlined"
-                  />
-                ) : null}
-              </Stack>
-            </Paper>
-
-            {renderCommandList()}
-
-            <Paper sx={{ p: 2.5 }}>
-              <Stack spacing={2}>
-                <Typography variant="h6">Personalize</Typography>
-                <ThemeToggle />
-              </Stack>
-            </Paper>
-
-            <TaskStats
-              total={counts.total}
-              completed={counts.completed}
-              active={counts.active}
-              onClearCompleted={handleClearCompleted}
-              onMarkAllComplete={handleMarkAllComplete}
-              onDeleteAll={handleDeleteAll}
-              onClearAllData={handleClearAllData}
-            />
-          </Stack>
-
-          <Stack spacing={2.5} flex={2}>
-            <Paper sx={{ p: 2.5 }}>
-              <Stack spacing={2}>
-                <Typography variant="h6">Add a task</Typography>
+                <Typography variant="h6">Add item</Typography>
                 <Box component="form" onSubmit={handleAddSubmit}>
-                  <Stack spacing={2}>
+                  <Stack spacing={1.5} direction={{ xs: 'column', sm: 'row' }}>
                     <TextField
                       fullWidth
                       inputRef={inputRef}
                       value={inputText}
                       onChange={event => setInputText(event.target.value)}
-                      placeholder="Add a todo..."
+                      placeholder="Add item..."
                       variant="outlined"
-                      size="small"
-                      inputProps={{ 'aria-label': 'Add a todo' }}
+                      size="medium"
+                      inputProps={{ 'aria-label': 'Add item' }}
+                      sx={{ '& .MuiInputBase-root': { minHeight: 56 } }}
                     />
-                    <Button type="submit" variant="contained" fullWidth>
-                      Add task
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      size="large"
+                      sx={{ minHeight: 56, px: 4 }}
+                    >
+                      Add item
                     </Button>
                   </Stack>
                 </Box>
+                <TranscriptDisplay
+                  interimTranscript={interimTranscript}
+                  finalTranscript={finalTranscript}
+                  isListening={isListening}
+                />
               </Stack>
             </Paper>
 
             <Paper sx={{ p: 2.5 }}>
               <Stack spacing={2}>
-                <Stack spacing={1}>
-                  <Typography variant="h6">Tasks</Typography>
-                  <TaskFilters
-                    value={filter}
-                    onChange={value => setFilter(value)}
-                    tabsRef={filterTabsRef}
-                  />
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
+                  justifyContent="space-between"
+                >
+                  <Typography variant="h6">Shopping List</Typography>
+                  <Button
+                    variant="contained"
+                    onClick={handleClearCompleted}
+                    disabled={counts.completed === 0}
+                    sx={{ minHeight: 44 }}
+                  >
+                    Clear checked
+                  </Button>
                 </Stack>
+                <TaskFilters
+                  value={filter}
+                  onChange={value => setFilter(value)}
+                  tabsRef={filterTabsRef}
+                />
                 {storageError ? (
                   <FeedbackMessage
                     message={storageError.message}
@@ -941,14 +931,15 @@ const VoiceTodoList: React.FC = () => {
                 ) : (
                   <List sx={styles.todoList} aria-live="polite">
                     {filteredTodos.map((todo, index) => (
-                      <TodoItem
+                      <GroceryItem
                         key={todo.id}
-                        todo={todo}
+                        item={todo}
                         index={index}
                         total={filteredTodos.length}
                         onToggle={handleToggleTodo}
                         onEdit={openEditDialog}
                         onDelete={openDeleteDialog}
+                        onSwipeDelete={handleDeleteTodo}
                         onMove={handleMoveTodo}
                       />
                     ))}
@@ -957,8 +948,100 @@ const VoiceTodoList: React.FC = () => {
               </Stack>
             </Paper>
           </Stack>
+
+          <Stack spacing={2.5} flex={1} minWidth={{ md: 320 }}>
+            <Paper sx={{ p: 2.5 }}>
+              <Stack spacing={2}>
+                <Typography variant="h6">Voice & preferences</Typography>
+                <Button
+                  variant="contained"
+                  startIcon={voiceSupported ? <MicIcon /> : <MicOffIcon />}
+                  onClick={handleVoiceToggle}
+                  disabled={!voiceSupported}
+                  className={isListening ? 'listening' : ''}
+                  sx={styles.voiceButton}
+                  aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+                  aria-pressed={isListening}
+                >
+                  {isListening ? 'Listening...' : 'Start voice'}
+                </Button>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={ttsEnabled}
+                      onChange={event => setTtsEnabled(event.target.checked)}
+                    />
+                  }
+                  label="Speak confirmations"
+                />
+                <VoiceSettings
+                  voices={voices}
+                  value={voiceSelectValue}
+                  onChange={value => setVoicePreference(value)}
+                  disabled={!ttsSupported || voices.length === 0}
+                />
+                <Button variant="text" onClick={() => setIsHelpOpen(true)}>
+                  Voice help
+                </Button>
+                {!voiceSupported ? (
+                  <Chip
+                    icon={<MicOffIcon />}
+                    label="Voice input unavailable"
+                    variant="outlined"
+                  />
+                ) : null}
+                <Divider />
+                <ThemeToggle />
+              </Stack>
+            </Paper>
+
+            <TaskStats
+              total={counts.total}
+              completed={counts.completed}
+              active={counts.active}
+              onClearCompleted={handleClearCompleted}
+              onMarkAllComplete={handleMarkAllComplete}
+              onDeleteAll={handleDeleteAll}
+              onClearAllData={handleClearAllData}
+            />
+          </Stack>
         </Stack>
       </Box>
+
+      <Tooltip
+        title={isListening ? 'Stop voice' : 'Start voice'}
+        placement="left"
+      >
+        <span>
+          <Fab
+            color="primary"
+            onClick={handleVoiceToggle}
+            disabled={!voiceSupported}
+            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+            className={isListening ? 'listening' : ''}
+            sx={styles.floatingMic}
+          >
+            {voiceSupported ? <MicIcon /> : <MicOffIcon />}
+          </Fab>
+        </span>
+      </Tooltip>
+
+      <Dialog
+        open={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Voice help</DialogTitle>
+        <DialogContent>
+          <Paper sx={styles.commandList} elevation={0}>
+            {renderCommandList()}
+          </Paper>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsHelpOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <EditTodoDialog
         todo={editingTodo}

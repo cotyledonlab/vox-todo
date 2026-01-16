@@ -17,22 +17,22 @@ const EmptyState: React.FC<EmptyStateProps> = ({ filter }) => {
   const config = {
     completed: {
       icon: CelebrationIcon,
-      title: 'No completed tasks yet',
-      message: 'Complete a task to see it celebrated here.',
+      title: 'No picked up items yet',
+      message: 'Pick up an item to see it celebrated here.',
       color: theme.palette.success.main,
       gradient: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.12)}, ${alpha(theme.palette.success.light, 0.06)})`,
     },
     active: {
       icon: CheckCircleOutlineIcon,
       title: 'All caught up!',
-      message: 'You\'ve completed everything. Add a new task when ready.',
+      message: 'You\'ve picked up everything. Add a new item when ready.',
       color: theme.palette.primary.main,
       gradient: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.12)}, ${alpha(theme.palette.info.main, 0.06)})`,
     },
     all: {
       icon: PlaylistAddIcon,
       title: 'Ready to get started',
-      message: 'Add your first task below or try a voice command.',
+      message: 'Add your first item below or try a voice command.',
       color: theme.palette.secondary.main,
       gradient: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)}, ${alpha(theme.palette.warning.main, 0.05)})`,
     },

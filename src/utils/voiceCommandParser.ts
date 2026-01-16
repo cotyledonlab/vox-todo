@@ -16,20 +16,28 @@ export const parseVoiceCommand = (input: string): VoiceCommand => {
     return { type: 'help' };
   }
 
-  if (/^(how many|count|number of)\s+(tasks|todos)?$/i.test(normalized)) {
+  if (/^(how many|count|number of)\s+(items|list|tasks|todos)?$/i.test(normalized)) {
     return { type: 'count' };
   }
 
   const clearCompletedMatch = normalized.match(
-    /^(clear|remove|delete)\s+(completed|done)(\s+tasks|\s+todos)?$/i
+    /^(clear|remove|delete)\s+(completed|done|checked|picked up|picked)(\s+items|\s+tasks|\s+todos|\s+list)?$/i
   );
   if (clearCompletedMatch) {
     return { type: 'clearCompleted' };
   }
 
-  const filterMatch = normalized.match(/^(show|filter)\s+(all|active|completed)$/i);
+  const filterMatch = normalized.match(
+    /^(show|filter)\s+(all|active|completed|picked up|picked|checked|need|needed)$/i
+  );
   if (filterMatch) {
-    return { type: 'filter', filter: filterMatch[2] as TodoFilter };
+    const nextFilter = filterMatch[2];
+    const normalizedFilter = ['picked up', 'picked', 'checked'].includes(nextFilter)
+      ? 'completed'
+      : ['need', 'needed'].includes(nextFilter)
+        ? 'active'
+        : nextFilter;
+    return { type: 'filter', filter: normalizedFilter as TodoFilter };
   }
 
   const moveMatch = normalized.match(/^move\s+(.*)\s+(up|down)$/i);
@@ -62,9 +70,11 @@ export const parseVoiceCommand = (input: string): VoiceCommand => {
     return { type: 'delete', text: trimPunctuation(deleteMatch[2]) };
   }
 
-  const completeMatch = normalized.match(/^(complete|finish|mark)\s+(.*)$/i);
+  const completeMatch = normalized.match(
+    /^(complete|finish|mark|got|picked up|pick up)\s+(.*)$/i
+  );
   if (completeMatch) {
-    const taskText = completeMatch[2].replace(/\s+(done|complete)$/i, '');
+    const taskText = completeMatch[2].replace(/\s+(done|complete|picked up|picked)$/i, '');
     return { type: 'complete', text: trimPunctuation(taskText) };
   }
 

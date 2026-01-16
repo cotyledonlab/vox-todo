@@ -90,7 +90,7 @@ export const useLocalStorageState = <T,>({
       handleError({
         type: isQuotaError(writeError) ? 'quota' : 'write',
         message: isQuotaError(writeError)
-          ? 'Storage is full. Clear space or delete old tasks.'
+          ? 'Storage is full. Clear space or delete old items.'
           : 'Unable to save changes to storage.',
       });
     }

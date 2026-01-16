@@ -85,6 +85,41 @@ export const styles = {
       '100%': { transform: 'scale(2.5)', opacity: 0 },
     },
   }),
+  floatingMic: (theme: Theme) => ({
+    position: 'fixed',
+    right: { xs: 16, md: 32 },
+    bottom: { xs: 16, md: 32 },
+    zIndex: (theme.zIndex.fab ?? theme.zIndex.modal) + 1,
+    minHeight: 56,
+    minWidth: 56,
+    background: theme.palette.mode === 'light'
+      ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+      : 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
+    boxShadow: theme.palette.mode === 'light'
+      ? '0 8px 28px rgba(13, 148, 136, 0.4)'
+      : '0 8px 28px rgba(45, 212, 191, 0.3)',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: theme.palette.mode === 'light'
+        ? '0 12px 32px rgba(13, 148, 136, 0.45)'
+        : '0 12px 32px rgba(45, 212, 191, 0.35)',
+    },
+    '&.listening': {
+      animation: 'floatingPulse 2s ease-in-out infinite',
+    },
+    '@keyframes floatingPulse': {
+      '0%, 100%': {
+        boxShadow: theme.palette.mode === 'light'
+          ? '0 8px 28px rgba(13, 148, 136, 0.35)'
+          : '0 8px 28px rgba(45, 212, 191, 0.3)',
+      },
+      '50%': {
+        boxShadow: theme.palette.mode === 'light'
+          ? '0 12px 36px rgba(13, 148, 136, 0.55)'
+          : '0 12px 36px rgba(45, 212, 191, 0.45)',
+      },
+    },
+  }),
   commandList: (theme: Theme) => ({
     borderRadius: '16px',
     border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.12 : 0.15)}`,

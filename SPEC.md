@@ -127,25 +127,25 @@ type Category =
 **Goal**: Rebrand and streamline for grocery use case
 
 #### 1.1 UI Simplification
-- [ ] Remove/collapse voice commands panel (show on demand or in help)
-- [ ] Larger item rows with bigger touch targets (min 56px height)
-- [ ] Prominent "Add item" input at top
-- [ ] Floating mic button for quick voice add
-- [ ] Rename "Tasks" to "Shopping List"
-- [ ] Update header branding to "Vox Grocery"
+- [x] Remove/collapse voice commands panel (show on demand or in help)
+- [x] Larger item rows with bigger touch targets (min 56px height)
+- [x] Prominent "Add item" input at top
+- [x] Floating mic button for quick voice add
+- [x] Rename "Tasks" to "Shopping List"
+- [x] Update header branding to "Vox Grocery"
 
 #### 1.2 Shopping Mode
-- [ ] One-tap check off (no confirmation)
-- [ ] Swipe to delete
-- [ ] Checked items move to bottom
-- [ ] "Clear checked" prominent button
-- [ ] Haptic feedback on check (if available)
+- [x] One-tap check off (no confirmation)
+- [x] Swipe to delete
+- [x] Checked items move to bottom
+- [x] "Clear checked" prominent button
+- [x] Haptic feedback on check (if available)
 
 #### 1.3 Copy Changes
-- [ ] "Add a todo..." → "Add item..."
-- [ ] "Task added" → "Added to list"
-- [ ] "Complete" → "Got it" / "Picked up"
-- [ ] Voice commands: "Got [item]" as alias for "Complete [item]"
+- [x] "Add a todo..." → "Add item..."
+- [x] "Task added" → "Added to list"
+- [x] "Complete" → "Got it" / "Picked up"
+- [x] Voice commands: "Got [item]" as alias for "Complete [item]"
 
 **Files to modify**:
 - `VoiceTodoList.tsx` - Main UI restructure

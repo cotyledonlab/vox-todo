@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Box,
   Checkbox,
@@ -19,27 +19,66 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import type { Todo } from '../types/Todo';
 
-interface TodoItemProps {
-  todo: Todo;
+interface GroceryItemProps {
+  item: Todo;
   index: number;
   total: number;
   onToggle: (id: string) => void;
-  onEdit: (todo: Todo) => void;
-  onDelete: (todo: Todo) => void;
+  onEdit: (item: Todo) => void;
+  onDelete: (item: Todo) => void;
+  onSwipeDelete?: (item: Todo) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
 }
 
-const TodoItem: React.FC<TodoItemProps> = ({
-  todo,
+const GroceryItem: React.FC<GroceryItemProps> = ({
+  item,
   index,
   total,
   onToggle,
   onEdit,
   onDelete,
+  onSwipeDelete,
   onMove,
 }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const skipClickRef = useRef(false);
+  const maxDrag = 120;
+  const swipeThreshold = 80;
+
+  const handlePointerDown = (event: React.PointerEvent) => {
+    startXRef.current = event.clientX;
+    skipClickRef.current = false;
+    setIsDragging(true);
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent) => {
+    if (!isDragging) {
+      return;
+    }
+    const delta = event.clientX - startXRef.current;
+    if (Math.abs(delta) > 10) {
+      skipClickRef.current = true;
+    }
+    setDragX(Math.max(Math.min(delta, maxDrag), -maxDrag));
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent) => {
+    if (!isDragging) {
+      return;
+    }
+    const delta = event.clientX - startXRef.current;
+    setIsDragging(false);
+    setDragX(0);
+    if (Math.abs(delta) >= swipeThreshold) {
+      const deleteAction = onSwipeDelete ?? onDelete;
+      deleteAction(item);
+    }
+  };
 
   return (
     <ListItem
@@ -48,10 +87,10 @@ const TodoItem: React.FC<TodoItemProps> = ({
         mb: 1.5,
         borderRadius: '16px',
         border: '1px solid',
-        borderColor: todo.completed
+        borderColor: item.completed
           ? alpha(theme.palette.success.main, 0.2)
           : 'divider',
-        backgroundColor: todo.completed
+        backgroundColor: item.completed
           ? alpha(theme.palette.success.main, isLight ? 0.04 : 0.08)
           : 'background.paper',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -60,13 +99,13 @@ const TodoItem: React.FC<TodoItemProps> = ({
           boxShadow: isLight
             ? '0 8px 25px rgba(0, 0, 0, 0.08)'
             : '0 8px 25px rgba(0, 0, 0, 0.3)',
-          borderColor: todo.completed
+          borderColor: item.completed
             ? alpha(theme.palette.success.main, 0.3)
             : alpha(theme.palette.primary.main, 0.3),
         },
         overflow: 'hidden',
         position: 'relative',
-        '&::before': todo.completed ? {
+        '&::before': item.completed ? {
           content: '""',
           position: 'absolute',
           left: 0,
@@ -94,9 +133,9 @@ const TodoItem: React.FC<TodoItemProps> = ({
             <span>
               <IconButton
                 size="small"
-                onClick={() => onMove(todo.id, 'up')}
+                onClick={() => onMove(item.id, 'up')}
                 disabled={index === 0}
-                aria-label={`Move ${todo.text} up`}
+                aria-label={`Move ${item.text} up`}
                 sx={{
                   color: 'text.secondary',
                   '&:not(:disabled):hover': {
@@ -113,9 +152,9 @@ const TodoItem: React.FC<TodoItemProps> = ({
             <span>
               <IconButton
                 size="small"
-                onClick={() => onMove(todo.id, 'down')}
+                onClick={() => onMove(item.id, 'down')}
                 disabled={index === total - 1}
-                aria-label={`Move ${todo.text} down`}
+                aria-label={`Move ${item.text} down`}
                 sx={{
                   color: 'text.secondary',
                   '&:not(:disabled):hover': {
@@ -131,8 +170,8 @@ const TodoItem: React.FC<TodoItemProps> = ({
           <Tooltip title="Edit" arrow>
             <IconButton
               size="small"
-              onClick={() => onEdit(todo)}
-              aria-label={`Edit ${todo.text}`}
+              onClick={() => onEdit(item)}
+              aria-label={`Edit ${item.text}`}
               sx={{
                 color: 'text.secondary',
                 '&:hover': {
@@ -147,8 +186,8 @@ const TodoItem: React.FC<TodoItemProps> = ({
           <Tooltip title="Delete" arrow>
             <IconButton
               size="small"
-              onClick={() => onDelete(todo)}
-              aria-label={`Delete ${todo.text}`}
+              onClick={() => onDelete(item)}
+              aria-label={`Delete ${item.text}`}
               sx={{
                 color: 'text.secondary',
                 '&:hover': {
@@ -164,21 +203,35 @@ const TodoItem: React.FC<TodoItemProps> = ({
       }
     >
       <ListItemButton
-        onClick={() => onToggle(todo.id)}
+        onClick={() => {
+          if (skipClickRef.current) {
+            skipClickRef.current = false;
+            return;
+          }
+          onToggle(item.id);
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
         sx={{
           borderRadius: '16px',
           pr: 14,
-          py: 1.5,
+          py: 2,
+          minHeight: 64,
+          transform: `translateX(${dragX}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease',
+          touchAction: 'pan-y',
           '&:hover': {
             backgroundColor: 'transparent',
           },
         }}
-        aria-label={`Toggle ${todo.text}`}
+        aria-label={`Toggle picked up for ${item.text}`}
       >
         <ListItemIcon sx={{ minWidth: 44 }}>
           <Checkbox
             edge="start"
-            checked={todo.completed}
+            checked={item.completed}
             tabIndex={-1}
             disableRipple
             icon={
@@ -197,7 +250,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
                 }}
               />
             }
-            inputProps={{ 'aria-label': `Mark ${todo.text} complete` }}
+            inputProps={{ 'aria-label': `Mark ${item.text} picked up` }}
             sx={{
               '&:hover': {
                 backgroundColor: 'transparent',
@@ -210,48 +263,22 @@ const TodoItem: React.FC<TodoItemProps> = ({
             <Box
               component="span"
               sx={{
-                textDecoration: todo.completed ? 'line-through' : 'none',
-                color: todo.completed ? 'text.secondary' : 'text.primary',
+                textDecoration: item.completed ? 'line-through' : 'none',
+                color: item.completed ? 'text.secondary' : 'text.primary',
                 fontWeight: 600,
-                fontSize: '0.95rem',
+                fontSize: '1rem',
                 letterSpacing: '-0.01em',
                 transition: 'all 0.2s ease',
-                opacity: todo.completed ? 0.7 : 1,
+                opacity: item.completed ? 0.7 : 1,
               }}
             >
-              {todo.text}
+              {item.text}
             </Box>
           }
-          secondary={
-            <Box
-              component="span"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                mt: 0.5,
-              }}
-            >
-              {new Date(todo.updatedAt).toLocaleString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Box>
-          }
-          secondaryTypographyProps={{
-            variant: 'caption',
-            sx: {
-              color: 'text.secondary',
-              fontSize: '0.75rem',
-              opacity: 0.8,
-            },
-          }}
         />
       </ListItemButton>
     </ListItem>
   );
 };
 
-export default TodoItem;
+export default GroceryItem;

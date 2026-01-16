@@ -13,12 +13,12 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({ value, onChange, tabsRef }) =
     value={value}
     onChange={(_, next) => onChange(next)}
     ref={tabsRef}
-    aria-label="Task filters"
+    aria-label="Shopping list filters"
     variant="fullWidth"
   >
     <Tab label="All" value="all" />
-    <Tab label="Active" value="active" />
-    <Tab label="Completed" value="completed" />
+    <Tab label="Need" value="active" />
+    <Tab label="Picked up" value="completed" />
   </Tabs>
 );
 

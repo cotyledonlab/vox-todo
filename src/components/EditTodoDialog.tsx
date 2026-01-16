@@ -40,7 +40,7 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onCancel} fullWidth maxWidth="sm">
-      <DialogTitle>Edit task</DialogTitle>
+      <DialogTitle>Edit item</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
@@ -48,7 +48,7 @@ const EditTodoDialog: React.FC<EditTodoDialogProps> = ({
           fullWidth
           value={value}
           onChange={event => setValue(event.target.value)}
-          label="Task"
+          label="Item"
           variant="outlined"
           onKeyDown={event => {
             if (event.key === 'Enter') {
