@@ -87,8 +87,9 @@ export const styles = {
   }),
   floatingMic: (theme: Theme) => ({
     position: 'fixed',
-    right: { xs: 16, md: 32 },
-    bottom: { xs: 16, md: 32 },
+    right: { xs: 'calc(16px + env(safe-area-inset-right, 0px))', md: 32 },
+    bottom: { xs: 'calc(16px + env(safe-area-inset-bottom, 0px))', md: 32 },
+    display: { xs: 'flex', md: 'none' },
     zIndex: (theme.zIndex.fab ?? theme.zIndex.modal) + 1,
     minHeight: 56,
     minWidth: 56,

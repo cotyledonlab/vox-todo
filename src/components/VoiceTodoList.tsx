@@ -1634,14 +1634,6 @@ const VoiceTodoList: React.FC = () => {
                   <Typography variant={isMobile ? 'h4' : 'h3'}>
                     VoxShop
                   </Typography>
-                  <Box sx={styles.floatingBadge}>
-                    {voiceSupported ? (
-                      <AutoAwesomeIcon fontSize="small" />
-                    ) : (
-                      <MicOffIcon fontSize="small" />
-                    )}
-                    {voiceSupported ? 'Voice-ready' : 'Text-only mode'}
-                  </Box>
                 </Stack>
                 <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
                   Capture your shopping list fast with voice or tap.
@@ -1766,6 +1758,15 @@ const VoiceTodoList: React.FC = () => {
                   onChange={value => setFilter(value)}
                   tabsRef={filterTabsRef}
                 />
+                {filter !== 'all' && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontStyle: 'italic', mt: -0.5 }}
+                  >
+                    Showing {filter === 'active' ? 'items still to get' : 'picked up items'} only
+                  </Typography>
+                )}
                 {storageError ? (
                   <FeedbackMessage
                     message={storageError.message}
@@ -1888,7 +1889,7 @@ const VoiceTodoList: React.FC = () => {
                   onClick={handleVoiceToggle}
                   disabled={!voiceSupported}
                   className={isListening ? 'listening' : ''}
-                  sx={styles.voiceButton}
+                  sx={{ ...styles.voiceButton, display: { xs: 'none', md: 'inline-flex' } }}
                   aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
                   aria-pressed={isListening}
                 >

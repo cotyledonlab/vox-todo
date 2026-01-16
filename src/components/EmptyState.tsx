@@ -32,7 +32,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ filter }) => {
     all: {
       icon: PlaylistAddIcon,
       title: 'Ready to get started',
-      message: 'Add your first item below or try a voice command.',
+      message: 'Add your first item below. Tip: swipe items left to delete them.',
       color: theme.palette.secondary.main,
       gradient: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)}, ${alpha(theme.palette.warning.main, 0.05)})`,
     },
