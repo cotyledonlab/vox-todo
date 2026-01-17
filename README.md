@@ -117,6 +117,12 @@ npm run build
 npm run preview
 ```
 
+Run tests:
+
+```bash
+npm run test
+```
+
 ### Browser Support
 
 | Browser | Voice | Notes |

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type StorageError = {
   type: 'read' | 'write' | 'quota';
@@ -34,6 +34,8 @@ export const useLocalStorageState = <T,>({
   onError,
 }: LocalStorageOptions<T>) => {
   const [error, setError] = useState<StorageError | null>(null);
+  const latestRef = useRef({ key, version, value: initialValue });
+  const debounceMs = 250;
 
   const handleError = useCallback(
     (nextError: StorageError) => {
@@ -80,21 +82,55 @@ export const useLocalStorageState = <T,>({
   const [value, setValue] = useState<T>(readValue);
 
   useEffect(() => {
+    latestRef.current = { key, version, value };
+  }, [key, value, version]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    try {
-      window.localStorage.setItem(key, JSON.stringify({ version, value }));
-    } catch (writeError) {
-      handleError({
-        type: isQuotaError(writeError) ? 'quota' : 'write',
-        message: isQuotaError(writeError)
-          ? 'Storage is full. Clear space or delete old items.'
-          : 'Unable to save changes to storage.',
-      });
-    }
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(key, JSON.stringify({ version, value }));
+      } catch (writeError) {
+        handleError({
+          type: isQuotaError(writeError) ? 'quota' : 'write',
+          message: isQuotaError(writeError)
+            ? 'Storage is full. Clear space or delete old items.'
+            : 'Unable to save changes to storage.',
+        });
+      }
+    }, debounceMs);
+
+    return () => window.clearTimeout(timeout);
   }, [handleError, key, value, version]);
+
+  useEffect(
+    () => () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(
+          latestRef.current.key,
+          JSON.stringify({
+            version: latestRef.current.version,
+            value: latestRef.current.value,
+          })
+        );
+      } catch (writeError) {
+        handleError({
+          type: isQuotaError(writeError) ? 'quota' : 'write',
+          message: isQuotaError(writeError)
+            ? 'Storage is full. Clear space or delete old items.'
+            : 'Unable to save changes to storage.',
+        });
+      }
+    },
+    [handleError]
+  );
 
   const clear = useCallback(() => {
     if (typeof window === 'undefined') {

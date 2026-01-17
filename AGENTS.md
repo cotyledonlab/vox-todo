@@ -142,6 +142,7 @@ Currently minimal test coverage. When adding tests:
 - Focus on user interactions, not implementation
 
 Run: `npm run build`
+Add tests: `npm run test`
 
 ---
 
